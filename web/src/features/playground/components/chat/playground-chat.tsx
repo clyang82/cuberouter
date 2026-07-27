@@ -27,10 +27,12 @@ import {
 import { Loader } from '@/components/ai-elements/loader'
 import { Message } from '@/components/ai-elements/message'
 
+import { MESSAGE_ROLES } from '../../constants'
 import {
   getChatMessageRenderState,
   getEditingMessageContent,
   getMessageAlignment,
+  getMessageContent,
   getPreviousUserMessage,
   isErrorMessage,
 } from '../../lib'
@@ -38,6 +40,7 @@ import type {
   Message as MessageType,
   PlaygroundMessageLayoutMode,
 } from '../../types'
+import { useEnabledPlugins } from '../../hooks/use-enabled-plugins'
 import { MessageActions } from '../message/message-actions'
 import { MessageErrorActions } from '../message/message-error-actions'
 import { PlaygroundMessageContent } from '../message/playground-message-content'
@@ -78,6 +81,7 @@ export function PlaygroundChat({
   messageLayoutMode = 'alternating',
 }: PlaygroundChatProps) {
   const { t } = useTranslation()
+  const { plugins } = useEnabledPlugins()
   const [editText, setEditText] = useState('')
   const [originalText, setOriginalText] = useState('')
   const [sourceMessageKeys, setSourceMessageKeys] = useState<
@@ -121,11 +125,23 @@ export function PlaygroundChat({
       editingKey
     )
     const isError = isErrorMessage(message)
-    const previousUserMessage = isError
-      ? getPreviousUserMessage(messages, messageIndex)
-      : null
+    const previousUserMessage = getPreviousUserMessage(messages, messageIndex)
+    const errorPreviousUserMessage = isError ? previousUserMessage : null
     const alignment = getMessageAlignment(message, messageLayoutMode)
     const isSourceVisible = sourceMessageKeys.has(message.key)
+
+    let pendingLabel: string | undefined
+    if (message.from === MESSAGE_ROLES.ASSISTANT && previousUserMessage) {
+      const slugMatch = /@([a-z0-9-]+)/.exec(
+        getMessageContent(previousUserMessage)
+      )
+      const plugin = slugMatch
+        ? plugins.find((item) => item.slug === slugMatch[1])
+        : undefined
+      if (plugin) {
+        pendingLabel = t('Using {{slug}}…', { slug: plugin.slug })
+      }
+    }
 
     return (
       <Message
@@ -163,6 +179,7 @@ export function PlaygroundChat({
               }
               isSourceVisible={isSourceVisible}
               message={message}
+              pendingLabel={pendingLabel}
               errorActions={
                 isError ? (
                   <MessageErrorActions
@@ -173,8 +190,8 @@ export function PlaygroundChat({
                         : undefined
                     }
                     onEditPrompt={
-                      onEditMessage && previousUserMessage
-                        ? () => onEditMessage(previousUserMessage)
+                      onEditMessage && errorPreviousUserMessage
+                        ? () => onEditMessage(errorPreviousUserMessage)
                         : undefined
                     }
                     onDelete={

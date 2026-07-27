@@ -72,4 +72,15 @@ const (
 	// fallback in authHelper (finishAdminAudit) skips its record to avoid
 	// duplicate entries.
 	ContextKeyAuditLogged ContextKey = "audit_logged"
+
+	// ContextKeyPluginSlugs stores the comma-joined slugs of plugins engaged by
+	// the playground plugin loop, propagated into each per-round sub-context so
+	// the consume log's other.plugin_slugs can record them for debugging.
+	ContextKeyPluginSlugs ContextKey = "plugin_slugs"
+
+	// ContextKeyPluginToolCalls stores the number of plugin tool calls executed
+	// before the current loop round; it is updated in the request context before
+	// each relay round and copied into that round's sub-context so the round's
+	// consume log records other.plugin_tool_calls.
+	ContextKeyPluginToolCalls ContextKey = "plugin_tool_calls"
 )

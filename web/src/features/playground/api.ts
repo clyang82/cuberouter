@@ -80,3 +80,19 @@ export async function getUserGroups(): Promise<GroupOption[]> {
     desc: info.desc,
   }))
 }
+
+/**
+ * Get enabled plugins for the playground @-mention autocomplete
+ */
+export async function getEnabledPlugins(): Promise<
+  { slug: string; name: string; description: string }[]
+> {
+  const res = await api.get(API_ENDPOINTS.PLUGIN_ENABLED)
+  const { data } = res
+
+  if (!data.success || !Array.isArray(data.data)) {
+    return []
+  }
+
+  return data.data
+}

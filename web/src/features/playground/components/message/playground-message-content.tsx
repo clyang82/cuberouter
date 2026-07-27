@@ -58,6 +58,7 @@ type PlaygroundMessageContentProps = {
   errorActions?: ReactNode
   isSourceVisible?: boolean
   message: Message
+  pendingLabel?: string
   versionContent: string
 }
 
@@ -67,6 +68,7 @@ export function PlaygroundMessageContent({
   errorActions,
   isSourceVisible = false,
   message,
+  pendingLabel,
   versionContent,
 }: PlaygroundMessageContentProps) {
   const { t } = useTranslation()
@@ -121,7 +123,7 @@ export function PlaygroundMessageContent({
         <div className='flex items-center gap-2 py-2'>
           <Loader />
           <Shimmer className='text-sm' duration={1}>
-            {t('Responding...')}
+            {pendingLabel ?? t('Responding...')}
           </Shimmer>
         </div>
       )}

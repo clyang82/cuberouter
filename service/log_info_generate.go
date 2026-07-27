@@ -92,6 +92,19 @@ func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, m
 		other["is_system_prompt_overwritten"] = true
 	}
 
+	// plugin_slugs / plugin_tool_calls are user-visible debugging info (which
+	// plugins the playground loop engaged this round, and how many tool calls
+	// preceded the round), so they live at the top level of other, not under
+	// admin_info.
+	if pluginSlugs := common.GetContextKeyString(ctx, constant.ContextKeyPluginSlugs); pluginSlugs != "" {
+		other["plugin_slugs"] = pluginSlugs
+	}
+	if ctx != nil {
+		if _, ok := common.GetContextKey(ctx, constant.ContextKeyPluginToolCalls); ok {
+			other["plugin_tool_calls"] = common.GetContextKeyInt(ctx, constant.ContextKeyPluginToolCalls)
+		}
+	}
+
 	adminInfo := make(map[string]interface{})
 	adminInfo["use_channel"] = ctx.GetStringSlice("use_channel")
 	isMultiKey := common.GetContextKeyBool(ctx, constant.ContextKeyChannelIsMultiKey)

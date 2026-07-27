@@ -1,0 +1,12 @@
+{
+  "Are you sure you want to delete plugin \"{{name}}\"? This action cannot be undone.": "Are you sure you want to delete plugin \"{{name}}\"? This action cannot be undone.",
+  "Lowercase letters, digits and dashes, 2-64 chars, must not start with a dash": "Lowercase letters, digits and dashes, 2-64 chars, must not start with a dash",
+  "No plugins yet. Create your first plugin to get started.": "No plugins yet. Create your first plugin to get started.",
+  "Only enabled plugins are available in the playground": "Only enabled plugins are available in the playground",
+  "Optional. A GitHub repo or raw URL to fetch the skill document from.": "Optional. A GitHub repo or raw URL to fetch the skill document from.",
+  "Please enter MCP URL first": "Please enter MCP URL first",
+  "Register an MCP server as a plugin, optionally with a skill document.": "Register an MCP server as a plugin, optionally with a skill document.",
+  "Streamable HTTP endpoint of the MCP server.": "Streamable HTTP endpoint of the MCP server.",
+  "Update plugin configuration and save when you are done.": "Update plugin configuration and save when you are done.",
+  "Used with @ in the playground, e.g. @github-tools.": "Used with @ in the playground, e.g. @github-tools."
+}

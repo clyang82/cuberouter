@@ -319,6 +319,22 @@ func SetApiRouter(router *gin.Engine) {
 			prefillGroupRoute.DELETE("/:id", controller.DeletePrefillGroup)
 		}
 
+		pluginRoute := apiRouter.Group("/plugin")
+		{
+			pluginRoute.GET("/enabled", middleware.UserAuth(), controller.GetEnabledPluginList)
+
+			pluginAdminRoute := pluginRoute.Group("")
+			pluginAdminRoute.Use(middleware.AdminAuth())
+			{
+				pluginAdminRoute.GET("/", controller.GetPlugins)
+				pluginAdminRoute.POST("/", controller.CreatePlugin)
+				pluginAdminRoute.PUT("/", controller.UpdatePlugin)
+				pluginAdminRoute.DELETE("/:id", controller.DeletePlugin)
+				pluginAdminRoute.POST("/:id/refresh", controller.RefreshPlugin)
+				pluginAdminRoute.POST("/test", controller.TestPluginConnection)
+			}
+		}
+
 		mjRoute := apiRouter.Group("/mj")
 		mjRoute.GET("/self", middleware.UserAuth(), controller.GetUserMidjourney)
 		mjRoute.GET("/", middleware.AdminAuth(), controller.GetAllMidjourney)
