@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
@@ -51,6 +54,18 @@ func Playground(c *gin.Context) {
 		Group:  relayInfo.UsingGroup,
 	}
 	_ = middleware.SetupContextForToken(c, tempToken)
+
+	// Plugin mentions (@slug) trigger the server-side tool-call loop.
+	var pgReq dto.GeneralOpenAIRequest
+	if err := common.UnmarshalBodyReusable(c, &pgReq); err == nil {
+		if lastUser := lastUserMessageText(&pgReq); lastUser != "" {
+			mentions := ExtractPluginMentions(lastUser)
+			if plugins := ResolveMentionedPlugins(mentions, service.GetEnabledPlugins()); len(plugins) > 0 {
+				playgroundWithPlugins(c, &pgReq, plugins)
+				return
+			}
+		}
+	}
 
 	Relay(c, types.RelayFormatOpenAI)
 }

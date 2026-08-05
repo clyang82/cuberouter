@@ -16,10 +16,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export * from './use-playground-state'
-export * from './use-stream-request'
-export * from './use-chat-handler'
-export * from './use-message-action-guard'
-export * from './use-playground-conversation'
-export * from './use-playground-options'
-export * from './use-enabled-plugins'
+import type { EnabledPlugin } from '../../hooks/use-enabled-plugins'
+
+const MAX_MENTION_MATCHES = 8
+
+export function filterPluginMentions(
+  plugins: EnabledPlugin[],
+  query: string
+): EnabledPlugin[] {
+  const normalizedQuery = query.toLowerCase()
+  return plugins
+    .filter(
+      (plugin) =>
+        plugin.slug.startsWith(normalizedQuery) ||
+        plugin.name.toLowerCase().includes(normalizedQuery)
+    )
+    .slice(0, MAX_MENTION_MATCHES)
+}

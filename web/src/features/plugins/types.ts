@@ -16,10 +16,28 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export * from './use-playground-state'
-export * from './use-stream-request'
-export * from './use-chat-handler'
-export * from './use-message-action-guard'
-export * from './use-playground-conversation'
-export * from './use-playground-options'
-export * from './use-enabled-plugins'
+export interface Plugin {
+  id: number
+  name: string
+  slug: string
+  description: string
+  enabled: boolean
+  mcp_url: string
+  auth_header?: string
+  auth_token?: string
+  skill_source: string
+  skill_content: string
+  skill_fetched_at: number
+  created_time: number
+  updated_time: number
+}
+
+export interface EnabledPlugin {
+  slug: string
+  name: string
+  description: string
+}
+
+export interface PluginTestResult {
+  tools: string[]
+}

@@ -16,10 +16,36 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export * from './use-playground-state'
-export * from './use-stream-request'
-export * from './use-chat-handler'
-export * from './use-message-action-guard'
-export * from './use-playground-conversation'
-export * from './use-playground-options'
-export * from './use-enabled-plugins'
+import { useEffect, useState } from 'react'
+
+import { getEnabledPlugins } from '../api'
+
+export interface EnabledPlugin {
+  slug: string
+  name: string
+  description: string
+}
+
+let cache: EnabledPlugin[] | null = null
+
+export function useEnabledPlugins() {
+  const [plugins, setPlugins] = useState<EnabledPlugin[]>(cache ?? [])
+
+  useEffect(() => {
+    if (cache) return
+    let cancelled = false
+    void getEnabledPlugins()
+      .then((list) => {
+        cache = list
+        if (!cancelled) setPlugins(list)
+      })
+      .catch(() => {
+        // Leave cache null so a later mount retries the fetch.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return { plugins }
+}
