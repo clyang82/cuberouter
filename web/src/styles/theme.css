@@ -19,7 +19,15 @@ For commercial licensing, please contact support@quantumnous.com
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: 'Public Sans', sans-serif;
+  /* Isuanova body face (Bricolage Grotesque, matching searouter's
+   * `--isuanova-font-sans`). CJK falls back to the host PingFang/YaHei
+   * before the generic sans. Weights loaded via @fontsource in index.css. */
+  --font-sans:
+    'Bricolage Grotesque', ui-sans-serif, system-ui, 'PingFang SC',
+    'Microsoft YaHei', -apple-system, blinkmacsystemfont, sans-serif;
+  /* Code face (searouter's `--isuanova-font-mono`); overrides Tailwind's
+   * ui-monospace default for every `font-mono` utility. */
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, consolas, monospace;
   /* Editorial serif token — the body face used by the `serif` font axis
    * and by presets that opt in (currently Anthropic). Lora carries only
    * Latin glyphs, so the stack walks through CJK serifs (Noto / Source Han

@@ -33,38 +33,18 @@ import { MOBILE_DRAWER_ANIMATION, MOBILE_DRAWER_CONFIG } from '../constants'
 import type { TopNavLink } from '../types'
 
 /**
- * Brand logo component with skeleton loading
+ * Brand logo linking back home
  */
 interface BrandLogoProps {
   homeUrl: string
-  displayLogo: React.ReactNode
   displaySiteName: string
-  loading: boolean
-  logoLoaded: boolean
   onClick?: () => void
 }
 
-function BrandLogo({
-  homeUrl,
-  displayLogo,
-  displaySiteName,
-  loading,
-  logoLoaded,
-  onClick,
-}: BrandLogoProps) {
+function BrandLogo({ homeUrl, displaySiteName, onClick }: BrandLogoProps) {
   return (
-    <Link
-      to={homeUrl}
-      className='flex items-center gap-2 text-xl font-bold'
-      onClick={onClick}
-    >
-      <div className='relative h-6 w-6'>
-        {loading || !logoLoaded ? (
-          <Skeleton className='absolute inset-0 rounded-full' />
-        ) : null}
-        {displayLogo}
-      </div>
-      {loading ? <Skeleton className='h-5 w-20' /> : displaySiteName}
+    <Link to={homeUrl} className='flex items-center' onClick={onClick}>
+      <img src='/head.png' alt={displaySiteName} className='h-6 w-auto' />
     </Link>
   )
 }
@@ -175,10 +155,8 @@ export interface MobileDrawerProps {
   isOpen: boolean
   onClose: () => void
   homeUrl: string
-  displayLogo: React.ReactNode
   displaySiteName: string
   loading: boolean
-  logoLoaded: boolean
   mobileLinksList: TopNavLink[]
   showAuthButtons: boolean
   user: AuthUser | null
@@ -192,10 +170,8 @@ export function MobileDrawer({
   isOpen,
   onClose,
   homeUrl,
-  displayLogo,
   displaySiteName,
   loading,
-  logoLoaded,
   mobileLinksList,
   showAuthButtons,
   user,
@@ -231,10 +207,7 @@ export function MobileDrawer({
               <div className='flex items-center justify-between'>
                 <BrandLogo
                   homeUrl={homeUrl}
-                  displayLogo={displayLogo}
                   displaySiteName={displaySiteName}
-                  loading={loading}
-                  logoLoaded={logoLoaded}
                   onClick={onClose}
                 />
                 <Button

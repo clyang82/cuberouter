@@ -740,3 +740,23 @@ For commercial licensing, please contact support@quantumnous.com
     width: 100%;
   }
 }
+
+/* ── CubeRouter brand accent ─────────────────────────────────────────────
+ * Uniform primary-action color across every preset and color scheme,
+ * mirroring the landing page accent (searouter-isuanova `--accent`). Black
+ * ink on orange matches the landing page's `.cr-btn--primary` (accent-ink).
+ * These rules intentionally come LAST: `:root` / `:root.dark` tie the light
+ * (`[data-theme-preset='x']`) and dark (`.dark [data-theme-preset='x']`)
+ * preset block specificities, so source order settles it in our favor. */
+:root {
+  --primary: #FB6415;
+  --primary-foreground: #000;
+  --sidebar-primary: #FB6415;
+  --sidebar-primary-foreground: #000;
+}
+:root.dark {
+  --primary: #FB6415;
+  --primary-foreground: #000;
+  --sidebar-primary: #FB6415;
+  --sidebar-primary-foreground: #000;
+}

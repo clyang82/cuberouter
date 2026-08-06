@@ -1,4 +1,6 @@
 {
+  "CubeRouter": "CubeRouter",
+  "CubeRouter <noreply@example.com>": "CubeRouter <noreply@example.com>",
   "Using {{slug}}…": "Using {{slug}}…",
   "Are you sure you want to delete plugin \"{{name}}\"? This action cannot be undone.": "Are you sure you want to delete plugin \"{{name}}\"? This action cannot be undone.",
   "Connection succeeded, but no tools were returned": "Connection succeeded, but no tools were returned",
@@ -30,5 +32,6 @@
   "Used with @ in the playground, e.g. @github-tools.": "Used with @ in the playground, e.g. @github-tools.",
   "What does this plugin do?": "What does this plugin do?",
   "e.g. GitHub Tools": "e.g. GitHub Tools",
-  "e.g. github-tools": "e.g. github-tools"
+  "e.g. github-tools": "e.g. github-tools",
+  "© 2026 CubeRouter · Suanova Technology Ltd": "© 2026 CubeRouter · Suanova Technology Ltd"
 }

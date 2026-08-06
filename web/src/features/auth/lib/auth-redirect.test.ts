@@ -70,21 +70,21 @@ describe('saved authentication language', () => {
     assert.equal(
       getSavedLanguage({
         ...user,
-        language: 'ja',
-        setting: { language: 'fr' },
+        language: 'zhTW',
+        setting: { language: 'en' },
       }),
-      'ja'
+      'zhTW'
     )
   })
 
   test('reads object and JSON string settings', () => {
     assert.equal(
-      getSavedLanguage({ ...user, setting: { language: 'fr' } }),
-      'fr'
+      getSavedLanguage({ ...user, setting: { language: 'zhTW' } }),
+      'zhTW'
     )
     assert.equal(
-      getSavedLanguage({ ...user, setting: '{"language":"ru"}' }),
-      'ru'
+      getSavedLanguage({ ...user, setting: '{"language":"zhCN"}' }),
+      'zhCN'
     )
   })
 
