@@ -406,7 +406,6 @@ html.dark .cr-globe-badge {
   max-width: none;
   margin: 0 0 24px;
   text-wrap: balance;
-
   background: linear-gradient(
     to right,
     var(--text-primary) 0%,
@@ -671,7 +670,7 @@ html.dark .cr-globe-badge {
 .cr-feature__icon svg {
   width: 18px;
   height: 18px;
-  stroke: currentColor;
+  stroke: currentcolor;
   stroke-width: 1.6;
   fill: none;
   stroke-linecap: round;

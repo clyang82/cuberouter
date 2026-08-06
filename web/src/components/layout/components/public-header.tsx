@@ -190,7 +190,7 @@ export function PublicHeader(props: PublicHeaderProps) {
             >
               <img
                 src='/head.png'
-                alt={displaySiteName || 'CubeRouter'}
+                alt={displaySiteName || t('CubeRouter')}
                 className='h-8 w-auto transition-all duration-300 group-hover:scale-105'
               />
             </Link>

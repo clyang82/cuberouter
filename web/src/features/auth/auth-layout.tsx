@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 
 import { useSystemConfig } from '@/hooks/use-system-config'
 
@@ -25,6 +26,7 @@ type AuthLayoutProps = {
 }
 
 export function AuthLayout({ children }: AuthLayoutProps) {
+  const { t } = useTranslation()
   const { systemName } = useSystemConfig()
 
   return (
@@ -36,7 +38,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         <h1>
           <img
             src='/head.png'
-            alt={systemName || 'CubeRouter'}
+            alt={systemName || t('CubeRouter')}
             className='h-8 w-auto'
           />
         </h1>

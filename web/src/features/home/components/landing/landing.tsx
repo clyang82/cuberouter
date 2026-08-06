@@ -30,8 +30,12 @@ import { useTranslation } from 'react-i18next'
 import Globe from './globe'
 import './landing.css'
 
-// Marketing demo base URL: shows the brand domain instead of the deployment host.
-const DEMO_API_BASE = 'https://cube-router.com'
+// Demo base URL for the API examples: point at the deployment serving this
+// page so a copied example talks to the right tenant, not a hard-coded host.
+const DEMO_API_BASE =
+  typeof window !== 'undefined'
+    ? window.location.origin
+    : 'https://cube-router.com'
 
 // Syntax-highlighted API call examples (markup matches landing.css .c-* classes).
 const CODE_EXAMPLES: Record<string, string> = {
@@ -114,7 +118,7 @@ export function Landing() {
             <div className='cr-hero__copy'>
               <span className='cr-hero__badge'>
                 <span className='cr-hero__badge-dot' aria-hidden='true' />
-                {t('landing.hero.badge')}
+                {t('Domestic Open-source AI Providers · Unified API')}
               </span>
 
               <h1 className='cr-hero__title'>
@@ -124,14 +128,14 @@ export function Landing() {
                 </span>
               </h1>
 
-              <p className='cr-hero__subtitle'>{t('landing.hero.subtitle')}</p>
+              <p className='cr-hero__subtitle'>{t('One interface to access DeepSeek, GLM (Zhipu), MiniMax, Qwen, and Kimi models. Powered by Suanova Technology enterprise computing — better pricing, more stable service, no subscription limits.')}</p>
 
               <div className='cr-hero__actions'>
                 <Link to='/sign-up' className='cr-btn cr-btn--primary cr-btn--lg'>
-                  {t('landing.hero.cta1')}
+                  {t('Get API Key')}
                 </Link>
                 <Link to='/pricing' className='cr-btn cr-btn--ghost cr-btn--lg'>
-                  {t('landing.hero.cta2')}
+                  {t('View Pricing')}
                 </Link>
               </div>
             </div>
@@ -144,7 +148,7 @@ export function Landing() {
           <div
             className='cr-terminal'
             role='region'
-            aria-label={t('landing.aria.apiExample')}
+            aria-label={t('API Call Example')}
           >
             <div className='cr-terminal__bar'>
               <span className='cr-terminal__dot' aria-hidden='true' />
@@ -175,19 +179,19 @@ export function Landing() {
           <div className='cr-container cr-stats__inner'>
             <div className='cr-stat'>
               <div className='cr-stat__value'>30T+</div>
-              <div className='cr-stat__label'>{t('landing.hero.statToken')}</div>
+              <div className='cr-stat__label'>{t('Monthly Tokens')}</div>
             </div>
             <div className='cr-stat'>
               <div className='cr-stat__value'>5M+</div>
-              <div className='cr-stat__label'>{t('landing.hero.statUsers')}</div>
+              <div className='cr-stat__label'>{t('Global Users')}</div>
             </div>
             <div className='cr-stat'>
               <div className='cr-stat__value'>60+</div>
-              <div className='cr-stat__label'>{t('landing.hero.statProviders')}</div>
+              <div className='cr-stat__label'>{t('Active Providers')}</div>
             </div>
             <div className='cr-stat'>
               <div className='cr-stat__value'>300+</div>
-              <div className='cr-stat__label'>{t('landing.hero.statModels')}</div>
+              <div className='cr-stat__label'>{t('Models Supported')}</div>
             </div>
           </div>
         </div>
@@ -197,9 +201,9 @@ export function Landing() {
       <section className='cr-section cr-section--no-border' id='features'>
         <div className='cr-container'>
           <div className='cr-section__head'>
-            <div className='cr-section__eyebrow'>{t('landing.features.eyebrow')}</div>
-            <h2 className='cr-section__title'>{t('landing.features.title')}</h2>
-            <p className='cr-section__desc'>{t('landing.features.desc')}</p>
+            <div className='cr-section__eyebrow'>{t('Features')}</div>
+            <h2 className='cr-section__title'>{t('AI Gateway Built for Enterprise')}</h2>
+            <p className='cr-section__desc'>{t('Unified access, intelligent routing, and fine-grained control — making AI a truly manageable infrastructure.')}</p>
           </div>
 
           <div className='cr-features'>
@@ -207,32 +211,32 @@ export function Landing() {
               <div className='cr-feature__icon' aria-hidden='true'>
                 <IconRoute />
               </div>
-              <h3 className='cr-feature__title'>{t('landing.features.relay.title')}</h3>
-              <p className='cr-feature__desc'>{t('landing.features.relay.desc')}</p>
+              <h3 className='cr-feature__title'>{t('Smart Routing')}</h3>
+              <p className='cr-feature__desc'>{t('Intelligently select the best model and channel with load balancing and failover for stable, efficient service.')}</p>
             </article>
 
             <article className='cr-feature'>
               <div className='cr-feature__icon' aria-hidden='true'>
                 <IconBolt />
               </div>
-              <h3 className='cr-feature__title'>{t('landing.features.perf.title')}</h3>
-              <p className='cr-feature__desc'>{t('landing.features.perf.desc')}</p>
+              <h3 className='cr-feature__title'>{t('Low Latency & High Performance')}</h3>
+              <p className='cr-feature__desc'>{t('Powered by Suanova Technology global infrastructure with edge deployment, minimal first-token latency, and optimal throughput.')}</p>
             </article>
 
             <article className='cr-feature'>
               <div className='cr-feature__icon' aria-hidden='true'>
                 <IconShield />
               </div>
-              <h3 className='cr-feature__title'>{t('landing.features.security.title')}</h3>
-              <p className='cr-feature__desc'>{t('landing.features.security.desc')}</p>
+              <h3 className='cr-feature__title'>{t('Enterprise Security')}</h3>
+              <p className='cr-feature__desc'>{t('Fine-grained data policies, private deployment, and data sovereignty protection for compliance and auditing.')}</p>
             </article>
 
             <article className='cr-feature'>
               <div className='cr-feature__icon' aria-hidden='true'>
                 <IconChart />
               </div>
-              <h3 className='cr-feature__title'>{t('landing.features.control.title')}</h3>
-              <p className='cr-feature__desc'>{t('landing.features.control.desc')}</p>
+              <h3 className='cr-feature__title'>{t('Fine-grained Control')}</h3>
+              <p className='cr-feature__desc'>{t('Quota management, traffic control, multi-dimensional statistics and billing to help enterprises track real costs.')}</p>
             </article>
           </div>
         </div>
@@ -243,20 +247,20 @@ export function Landing() {
         <div className='cr-container'>
           <div className='cr-enterprise'>
             <div>
-              <div className='cr-section__eyebrow'>{t('landing.enterprise.eyebrow')}</div>
+              <div className='cr-section__eyebrow'>{t('Enterprise')}</div>
               <h2 className='cr-section__title' style={{ maxWidth: '12ch' }}>
-                {t('landing.enterprise.title')}
+                {t('Built for Large Organizations')}
               </h2>
-              <p className='cr-section__desc'>{t('landing.enterprise.desc')}</p>
+              <p className='cr-section__desc'>{t('Enterprise edition provides auditing, private deployment, and customized SLAs, covering security, compliance, and scalability needs.')}</p>
               <div className='cr-enterprise__actions'>
                 <a
                   href='mailto:cube-router.sales@isuanova.com'
                   className='cr-btn cr-btn--primary'
                 >
-                  {t('landing.enterprise.contactSales')}
+                  {t('Contact Sales')}
                 </a>
                 <Link to='/pricing' className='cr-btn cr-btn--ghost'>
-                  {t('landing.nav.viewPricing')}
+                  {t('View Pricing')}
                 </Link>
               </div>
             </div>
@@ -266,10 +270,10 @@ export function Landing() {
                 <span className='cr-enterprise-item__num'>01</span>
                 <div>
                   <h3 className='cr-enterprise-item__title'>
-                    {t('landing.enterprise.item1.title')}
+                    {t('Enterprise Security')}
                   </h3>
                   <p className='cr-enterprise-item__desc'>
-                    {t('landing.enterprise.item1.desc')}
+                    {t('Fine-grained access control, complete audit logs, and support for on-premise deployment.')}
                   </p>
                 </div>
               </div>
@@ -277,10 +281,10 @@ export function Landing() {
                 <span className='cr-enterprise-item__num'>02</span>
                 <div>
                   <h3 className='cr-enterprise-item__title'>
-                    {t('landing.enterprise.item2.title')}
+                    {t('Advanced Analytics')}
                   </h3>
                   <p className='cr-enterprise-item__desc'>
-                    {t('landing.enterprise.item2.desc')}
+                    {t('Usage analytics, cost optimization recommendations, custom reports, and multi-team billing statistics.')}
                   </p>
                 </div>
               </div>
@@ -288,10 +292,10 @@ export function Landing() {
                 <span className='cr-enterprise-item__num'>03</span>
                 <div>
                   <h3 className='cr-enterprise-item__title'>
-                    {t('landing.enterprise.item3.title')}
+                    {t('Dedicated Support')}
                   </h3>
                   <p className='cr-enterprise-item__desc'>
-                    {t('landing.enterprise.item3.desc')}
+                    {t('Dedicated technical support, customer success manager, custom feature development, and priority SLA.')}
                   </p>
                 </div>
               </div>
@@ -304,26 +308,26 @@ export function Landing() {
       <section className='cr-section cr-section--subtle'>
         <div className='cr-container'>
           <div className='cr-section__head'>
-            <div className='cr-section__eyebrow'>{t('landing.quickstart.eyebrow')}</div>
-            <h2 className='cr-section__title'>{t('landing.quickstart.title')}</h2>
-            <p className='cr-section__desc'>{t('landing.quickstart.desc')}</p>
+            <div className='cr-section__eyebrow'>{t('Quick Start')}</div>
+            <h2 className='cr-section__title'>{t('Get Started in 3 Steps')}</h2>
+            <p className='cr-section__desc'>{t('Fully compatible with OpenAI API format. From registration to first API call in just minutes.')}</p>
           </div>
 
           <div className='cr-steps'>
             <div className='cr-step'>
-              <div className='cr-step__num'>{t('landing.quickstart.step1.num')}</div>
-              <h3 className='cr-step__title'>{t('landing.quickstart.step1.title')}</h3>
-              <p className='cr-step__desc'>{t('landing.quickstart.step1.desc')}</p>
+              <div className='cr-step__num'>{t('01 / Register')}</div>
+              <h3 className='cr-step__title'>{t('Create Account')}</h3>
+              <p className='cr-step__desc'>{t('Register a CubeRouter account and get your dedicated API access.')}</p>
             </div>
             <div className='cr-step'>
-              <div className='cr-step__num'>{t('landing.quickstart.step2.num')}</div>
-              <h3 className='cr-step__title'>{t('landing.quickstart.step2.title')}</h3>
-              <p className='cr-step__desc'>{t('landing.quickstart.step2.desc')}</p>
+              <div className='cr-step__num'>{t('02 / Top Up')}</div>
+              <h3 className='cr-step__title'>{t('Buy Credits')}</h3>
+              <p className='cr-step__desc'>{t('Top up credits on demand — flexible pay-as-you-go billing, scale anytime.')}</p>
             </div>
             <div className='cr-step'>
-              <div className='cr-step__num'>{t('landing.quickstart.step3.num')}</div>
-              <h3 className='cr-step__title'>{t('landing.quickstart.step3.title')}</h3>
-              <p className='cr-step__desc'>{t('landing.quickstart.step3.desc')}</p>
+              <div className='cr-step__num'>{t('03 / Connect')}</div>
+              <h3 className='cr-step__title'>{t('Get API Key')}</h3>
+              <p className='cr-step__desc'>{t('Create an API Key, replace the base_url, and start calling all supported models.')}</p>
             </div>
           </div>
         </div>
@@ -332,18 +336,18 @@ export function Landing() {
       {/* ==================== CTA ==================== */}
       <section className='cr-section'>
         <div className='cr-container cr-cta__inner'>
-          <div className='cr-section__eyebrow'>{t('landing.cta.eyebrow')}</div>
-          <h2 className='cr-cta__title'>{t('landing.cta.title')}</h2>
-          <p className='cr-cta__desc'>{t('landing.cta.desc')}</p>
+          <div className='cr-section__eyebrow'>{t('Get Started')}</div>
+          <h2 className='cr-cta__title'>{t('Start now, integrate AI into your business.')}</h2>
+          <p className='cr-cta__desc'>{t('Professional, stable, and efficient AI gateway to help your team build AI applications faster.')}</p>
           <div className='cr-cta__actions'>
             <Link to='/sign-up' className='cr-btn cr-btn--primary cr-btn--lg'>
-              {t('landing.cta.btnTrial')}
+              {t('Free Trial')}
             </Link>
             <a
               href='mailto:cube-router.cs-support@isuanova.com'
               className='cr-btn cr-btn--ghost cr-btn--lg'
             >
-              {t('landing.cta.btnContact')}
+              {t('Contact Us')}
             </a>
           </div>
         </div>
@@ -357,36 +361,36 @@ export function Landing() {
               <div className='cr-footer__brand'>
                 <img src='/head.png' alt='CubeRouter' />
               </div>
-              <p className='cr-footer__desc'>{t('landing.footer.desc')}</p>
+              <p className='cr-footer__desc'>{t('oneSuanova is a leading AI service provider. Through its proprietary Token-as-a-Service (TaaS) platform, it provides stable and efficient AI Token cloud services for enterprises and institutions across industries. The brand is wholly owned and operated by Suanova Technology, dedicated to building high-standard, scalable next-generation AI computing infrastructure.')}</p>
             </div>
 
             <div>
-              <h4 className='cr-footer__col-title'>{t('landing.footer.product')}</h4>
+              <h4 className='cr-footer__col-title'>{t('Product')}</h4>
               <ul className='cr-footer__links'>
                 <li>
                   <a href='#features' className='cr-footer__link'>
-                    {t('landing.footer.features')}
+                    {t('Features')}
                   </a>
                 </li>
                 <li>
                   <Link to='/pricing' className='cr-footer__link'>
-                    {t('landing.footer.modelList')}
+                    {t('Models')}
                   </Link>
                 </li>
                 <li>
                   <Link to='/pricing' className='cr-footer__link'>
-                    {t('landing.footer.pricing')}
+                    {t('Pricing')}
                   </Link>
                 </li>
               </ul>
             </div>
 
             <div>
-              <h4 className='cr-footer__col-title'>{t('landing.footer.enterprise')}</h4>
+              <h4 className='cr-footer__col-title'>{t('Enterprise')}</h4>
               <ul className='cr-footer__links'>
                 <li>
                   <a href='#enterprise' className='cr-footer__link'>
-                    {t('landing.footer.enterpriseEdition')}
+                    {t('Enterprise Edition')}
                   </a>
                 </li>
                 <li>
@@ -394,23 +398,23 @@ export function Landing() {
                     href='mailto:cube-router.sales@isuanova.com'
                     className='cr-footer__link'
                   >
-                    {t('landing.enterprise.contactSales')}
+                    {t('Contact Sales')}
                   </a>
                 </li>
               </ul>
             </div>
 
             <div>
-              <h4 className='cr-footer__col-title'>{t('landing.footer.legal')}</h4>
+              <h4 className='cr-footer__col-title'>{t('Legal')}</h4>
               <ul className='cr-footer__links'>
                 <li>
                   <Link to='/privacy-policy' className='cr-footer__link'>
-                    {t('landing.footer.privacy')}
+                    {t('Privacy Policy')}
                   </Link>
                 </li>
                 <li>
                   <Link to='/user-agreement' className='cr-footer__link'>
-                    {t('landing.footer.terms')}
+                    {t('Terms of Service')}
                   </Link>
                 </li>
               </ul>
@@ -418,8 +422,8 @@ export function Landing() {
           </div>
 
           <div className='cr-footer__bottom'>
-            <span>{t('landing.footer.copyright')}</span>
-            <span>All Rights Reserved</span>
+            <span>{t('© 2026 CubeRouter · Suanova Technology Ltd')}</span>
+            <span>{t('All Rights Reserved')}</span>
           </div>
         </div>
       </footer>

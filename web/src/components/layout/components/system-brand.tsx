@@ -49,7 +49,7 @@ export function SystemBrand(props: SystemBrandProps) {
   const { status } = useStatus()
 
   const variant = props.variant ?? 'sidebar'
-  const name = status?.system_name || props.defaultName || 'CubeRouter'
+  const name = status?.system_name || props.defaultName || t('CubeRouter')
   const version =
     status?.version || props.defaultVersion || t('Unknown version')
 
