@@ -447,6 +447,24 @@ export function UsersMutateDrawer({
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name='phone'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Phone')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type='tel'
+                            placeholder={t('Phone number')}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </SideDrawerSection>
               )}
 

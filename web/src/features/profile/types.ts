@@ -43,6 +43,8 @@ export interface UserProfile {
   role: number
   /** Email address */
   email?: string
+  /** Phone number */
+  phone?: string
   /** User group */
   group: string
   /** Current quota balance */
@@ -127,6 +129,7 @@ export interface UpdateUserRequest {
   display_name?: string
   password?: string
   original_password?: string
+  phone?: string
 }
 
 /**

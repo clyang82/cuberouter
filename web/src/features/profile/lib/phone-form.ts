@@ -16,5 +16,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export * from './format'
-export * from './phone-form'
+import { z } from 'zod'
+
+// Same 32-character bound as registerFormSchema (features/auth/constants.ts).
+export const phoneBindFormSchema = z.object({
+  phone: z
+    .string()
+    .trim()
+    .min(1, 'Phone number is required')
+    .max(32, 'Phone number is too long'),
+})
+
+export type PhoneBindFormData = z.infer<typeof phoneBindFormSchema>

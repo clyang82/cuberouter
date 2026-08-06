@@ -16,5 +16,23 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export * from './format'
-export * from './phone-form'
+import { Plus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+
+import { Button } from '@/components/ui/button'
+
+import { useCampaigns } from './campaigns-provider'
+
+export function CampaignsPrimaryButtons() {
+  const { t } = useTranslation()
+  const { setOpen } = useCampaigns()
+
+  return (
+    <div className='flex flex-wrap gap-2'>
+      <Button size='sm' onClick={() => setOpen('create')}>
+        <Plus className='h-4 w-4' />
+        {t('Add Campaign')}
+      </Button>
+    </div>
+  )
+}

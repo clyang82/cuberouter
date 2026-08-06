@@ -12,18 +12,23 @@ import (
 )
 
 type Redemption struct {
-	Id           int            `json:"id"`
-	UserId       int            `json:"user_id"`
-	Key          string         `json:"key" gorm:"type:char(32);uniqueIndex"`
-	Status       int            `json:"status" gorm:"default:1"`
-	Name         string         `json:"name" gorm:"index"`
-	Quota        int            `json:"quota" gorm:"default:100"`
-	CreatedTime  int64          `json:"created_time" gorm:"bigint"`
-	RedeemedTime int64          `json:"redeemed_time" gorm:"bigint"`
-	Count        int            `json:"count" gorm:"-:all"` // only for api request
-	UsedUserId   int            `json:"used_user_id"`
-	DeletedAt    gorm.DeletedAt `gorm:"index"`
-	ExpiredTime  int64          `json:"expired_time" gorm:"bigint"` // 过期时间，0 表示不过期
+	Id           int    `json:"id"`
+	UserId       int    `json:"user_id"`
+	Key          string `json:"key" gorm:"type:char(32);uniqueIndex"`
+	Status       int    `json:"status" gorm:"default:1"`
+	Name         string `json:"name" gorm:"index"`
+	Quota        int    `json:"quota" gorm:"default:100"`
+	CreatedTime  int64  `json:"created_time" gorm:"bigint"`
+	RedeemedTime int64  `json:"redeemed_time" gorm:"bigint"`
+	Count        int    `json:"count" gorm:"-:all"` // only for api request
+	UsedUserId   int    `json:"used_user_id"`
+	OwnerAdminId int    `json:"owner_admin_id" gorm:"type:int;default:0;index"`
+	// CampaignId scopes an invitation code pool to the campaign that generated
+	// it, so two invitation campaigns sharing one invitee never share codes.
+	// 0 = not campaign-generated (admin-created or phone_filled codes).
+	CampaignId  int            `json:"campaign_id" gorm:"type:int;default:0;index"`
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
+	ExpiredTime int64          `json:"expired_time" gorm:"bigint"` // 过期时间，0 表示不过期
 }
 
 func GetAllRedemptions(startIdx int, num int) (redemptions []*Redemption, total int64, err error) {
@@ -225,4 +230,74 @@ func DeleteInvalidRedemptions() (int64, error) {
 	now := common.GetTimestamp()
 	result := DB.Where("status IN ? OR (status = ? AND expired_time != 0 AND expired_time < ?)", []int{common.RedemptionCodeStatusUsed, common.RedemptionCodeStatusDisabled}, common.RedemptionCodeStatusEnabled, now).Delete(&Redemption{})
 	return result.RowsAffected, result.Error
+}
+
+// CountAvailableRedemptionCodesByOwner counts unused, unexpired codes in the
+// given campaign's pool for the given invitation-campaign invitee, i.e. the
+// current pool size available for dispatch.
+func CountAvailableRedemptionCodesByOwner(campaignId int, ownerAdminId int) (int64, error) {
+	var count int64
+	now := common.GetTimestamp()
+	err := DB.Model(&Redemption{}).
+		Where("campaign_id = ? AND owner_admin_id = ? AND status = ?", campaignId, ownerAdminId, common.RedemptionCodeStatusEnabled).
+		Where("(expired_time = 0 OR expired_time > ?)", now).
+		Count(&count).Error
+	return count, err
+}
+
+// DispatchRedemptionToUser atomically draws one available code from the
+// campaign's pool for the invitee and credits it to userId. Returns
+// (nil, nil) when the pool is empty.
+// The row lock + status compare-and-swap guarantee a code is issued to exactly one user
+// even under concurrent dispatches (mirrors Redeem).
+func DispatchRedemptionToUser(campaignId int, ownerAdminId int, userId int) (*Redemption, error) {
+	redemption := &Redemption{}
+	now := common.GetTimestamp()
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		err := lockForUpdate(tx).
+			Where("campaign_id = ? AND owner_admin_id = ? AND status = ?", campaignId, ownerAdminId, common.RedemptionCodeStatusEnabled).
+			Where("(expired_time = 0 OR expired_time > ?)", now).
+			Order("id ASC").
+			Limit(1).
+			First(redemption).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil // empty pool is not an error
+			}
+			return err
+		}
+		result := tx.Model(&Redemption{}).
+			Where("id = ? AND status = ?", redemption.Id, common.RedemptionCodeStatusEnabled).
+			Updates(map[string]interface{}{
+				"redeemed_time": now,
+				"status":        common.RedemptionCodeStatusUsed,
+				"used_user_id":  userId,
+			})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return errors.New("redemption code was concurrently dispatched")
+		}
+		userResult := tx.Model(&User{}).
+			Where("id = ?", userId).
+			Update("quota", gorm.Expr("quota + ?", redemption.Quota))
+		if userResult.Error != nil {
+			return userResult.Error
+		}
+		if userResult.RowsAffected != 1 {
+			// Recipient does not exist: roll back so the code is not consumed.
+			return errors.New("redemption recipient user does not exist")
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if redemption.Id == 0 {
+		return nil, nil
+	}
+	RecordLog(userId, LogTypeTopup, fmt.Sprintf("通过邀请关联自动发放兑换码充值 %s，兑换码ID %d，归属用户ID %d",
+		logger.LogQuota(redemption.Quota), redemption.Id, ownerAdminId))
+	return redemption, nil
 }
