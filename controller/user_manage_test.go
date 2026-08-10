@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service/authz"
 
@@ -49,14 +50,19 @@ func setupManageUserTestDB(t *testing.T) *gorm.DB {
 
 func performManageUserRequest(t *testing.T, body string) *httptest.ResponseRecorder {
 	t.Helper()
+	return performManageUserRequestWithRole(t, body, common.RoleRootUser)
+}
+
+func performManageUserRequestWithRole(t *testing.T, body string, role int) *httptest.ResponseRecorder {
+	t.Helper()
 	gin.SetMode(gin.TestMode)
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/user/manage", strings.NewReader(body))
 	c.Request.Header.Set("Content-Type", "application/json")
 	c.Set("id", 9999)
-	c.Set("role", common.RoleRootUser)
-	c.Set("username", "root-operator")
+	c.Set("role", role)
+	c.Set("username", "operator")
 	ManageUser(c)
 	return recorder
 }
@@ -158,4 +164,119 @@ func TestManageUserDeleteReturnsImmediatelyAndUnknownActionFails(t *testing.T) {
 	require.NoError(t, db.First(&unchanged, unchanged.Id).Error)
 	assert.EqualValues(t, 1, unchanged.AuthVersion)
 	assert.Equal(t, common.UserStatusEnabled, unchanged.Status)
+}
+
+func TestManageUserPromoteOps(t *testing.T) {
+	db := setupManageUserTestDB(t)
+
+	t.Run("root promotes common to ops", func(t *testing.T) {
+		user := model.User{
+			Username: "promote-ops-root", Password: "password", Role: common.RoleCommonUser,
+			Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "promote-ops-root-aff",
+		}
+		require.NoError(t, db.Create(&user).Error)
+		recorder := performManageUserRequest(t, fmt.Sprintf(`{"id":%d,"action":"promote_ops"}`, user.Id))
+		assert.Contains(t, recorder.Body.String(), `"success":true`)
+		var updated model.User
+		require.NoError(t, db.First(&updated, user.Id).Error)
+		assert.Equal(t, common.RoleOpsUser, updated.Role)
+	})
+
+	t.Run("admin promotes common to ops", func(t *testing.T) {
+		user := model.User{
+			Username: "promote-ops-admin", Password: "password", Role: common.RoleCommonUser,
+			Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "promote-ops-admin-aff",
+		}
+		require.NoError(t, db.Create(&user).Error)
+		recorder := performManageUserRequestWithRole(t, fmt.Sprintf(`{"id":%d,"action":"promote_ops"}`, user.Id), common.RoleAdminUser)
+		assert.Contains(t, recorder.Body.String(), `"success":true`)
+		var updated model.User
+		require.NoError(t, db.First(&updated, user.Id).Error)
+		assert.Equal(t, common.RoleOpsUser, updated.Role)
+	})
+
+	t.Run("ops user cannot promote", func(t *testing.T) {
+		user := model.User{
+			Username: "promote-ops-forbidden", Password: "password", Role: common.RoleCommonUser,
+			Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "promote-ops-forbidden-aff",
+		}
+		require.NoError(t, db.Create(&user).Error)
+		recorder := performManageUserRequestWithRole(t, fmt.Sprintf(`{"id":%d,"action":"promote_ops"}`, user.Id), common.RoleOpsUser)
+		assert.Contains(t, recorder.Body.String(), `"success":false`)
+		assert.Contains(t, recorder.Body.String(), i18n.MsgUserAdminCannotPromote)
+		var updated model.User
+		require.NoError(t, db.First(&updated, user.Id).Error)
+		assert.Equal(t, common.RoleCommonUser, updated.Role)
+	})
+
+	t.Run("already ops or higher rejected", func(t *testing.T) {
+		ops := model.User{
+			Username: "promote-ops-already", Password: "password", Role: common.RoleOpsUser,
+			Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "promote-ops-already-aff",
+		}
+		require.NoError(t, db.Create(&ops).Error)
+		recorder := performManageUserRequest(t, fmt.Sprintf(`{"id":%d,"action":"promote_ops"}`, ops.Id))
+		assert.Contains(t, recorder.Body.String(), `"success":false`)
+		assert.Contains(t, recorder.Body.String(), i18n.MsgOpsUserAlreadyOpsOrHigher)
+
+		admin := model.User{
+			Username: "promote-ops-admin-target", Password: "password", Role: common.RoleAdminUser,
+			Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "promote-ops-admin-target-aff",
+		}
+		require.NoError(t, db.Create(&admin).Error)
+		recorder = performManageUserRequest(t, fmt.Sprintf(`{"id":%d,"action":"promote_ops"}`, admin.Id))
+		assert.Contains(t, recorder.Body.String(), `"success":false`)
+	})
+}
+
+func TestManageUserDemoteOps(t *testing.T) {
+	db := setupManageUserTestDB(t)
+
+	t.Run("admin demotes ops to common", func(t *testing.T) {
+		user := model.User{
+			Username: "demote-ops-admin", Password: "password", Role: common.RoleOpsUser,
+			Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "demote-ops-admin-aff",
+		}
+		require.NoError(t, db.Create(&user).Error)
+		recorder := performManageUserRequestWithRole(t, fmt.Sprintf(`{"id":%d,"action":"demote_ops"}`, user.Id), common.RoleAdminUser)
+		assert.Contains(t, recorder.Body.String(), `"success":true`)
+		var updated model.User
+		require.NoError(t, db.First(&updated, user.Id).Error)
+		assert.Equal(t, common.RoleCommonUser, updated.Role)
+	})
+
+	t.Run("root demotes ops to common", func(t *testing.T) {
+		user := model.User{
+			Username: "demote-ops-root", Password: "password", Role: common.RoleOpsUser,
+			Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "demote-ops-root-aff",
+		}
+		require.NoError(t, db.Create(&user).Error)
+		recorder := performManageUserRequest(t, fmt.Sprintf(`{"id":%d,"action":"demote_ops"}`, user.Id))
+		assert.Contains(t, recorder.Body.String(), `"success":true`)
+		var updated model.User
+		require.NoError(t, db.First(&updated, user.Id).Error)
+		assert.Equal(t, common.RoleCommonUser, updated.Role)
+	})
+
+	t.Run("non-ops user rejected", func(t *testing.T) {
+		user := model.User{
+			Username: "demote-ops-not-ops", Password: "password", Role: common.RoleCommonUser,
+			Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "demote-ops-not-ops-aff",
+		}
+		require.NoError(t, db.Create(&user).Error)
+		recorder := performManageUserRequest(t, fmt.Sprintf(`{"id":%d,"action":"demote_ops"}`, user.Id))
+		assert.Contains(t, recorder.Body.String(), `"success":false`)
+		assert.Contains(t, recorder.Body.String(), i18n.MsgOpsUserNotOps)
+	})
+
+	t.Run("admin cannot demote a peer admin", func(t *testing.T) {
+		admin := model.User{
+			Username: "demote-ops-peer", Password: "password", Role: common.RoleAdminUser,
+			Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "demote-ops-peer-aff",
+		}
+		require.NoError(t, db.Create(&admin).Error)
+		recorder := performManageUserRequestWithRole(t, fmt.Sprintf(`{"id":%d,"action":"demote_ops"}`, admin.Id), common.RoleAdminUser)
+		assert.Contains(t, recorder.Body.String(), `"success":false`)
+		assert.Contains(t, recorder.Body.String(), i18n.MsgUserNoPermissionHigherLevel)
+	})
 }

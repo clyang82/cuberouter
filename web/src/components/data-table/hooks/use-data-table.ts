@@ -365,6 +365,11 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>) {
     initialPagination,
     options.onPaginationChange
   )
+  const [columnFilters, onColumnFiltersChange] = useControllableTableState(
+    options.columnFilters,
+    [],
+    options.onColumnFiltersChange
+  )
 
   const resolvedPageCount =
     explicitPageCount ??
@@ -388,7 +393,7 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>) {
       columnSizing,
       rowSelection,
       expanded,
-      columnFilters: options.columnFilters,
+      columnFilters,
       globalFilter: options.globalFilter,
       pagination,
     },
@@ -408,7 +413,7 @@ export function useDataTable<TData>(options: UseDataTableOptions<TData>) {
     onColumnSizingChange,
     onRowSelectionChange,
     onExpandedChange,
-    onColumnFiltersChange: options.onColumnFiltersChange,
+    onColumnFiltersChange,
     onGlobalFilterChange: options.onGlobalFilterChange,
     onPaginationChange,
     getCoreRowModel: getCoreRowModel(),

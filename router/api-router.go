@@ -283,6 +283,28 @@ func SetApiRouter(router *gin.Engine) {
 			campaignRoute.GET("/:id/rewards", controller.GetCampaignRewards)
 			campaignRoute.POST("/rewards/:id/resend", controller.ResendCampaignRewardEmail)
 		}
+
+		// Campaign management (ops — read-only, filtered by invitee_user_id)
+		opsCampaignRoute := apiRouter.Group("/ops/campaign")
+		opsCampaignRoute.Use(middleware.OpsAuth())
+		{
+			opsCampaignRoute.GET("/", controller.GetOpsCampaigns)
+			opsCampaignRoute.GET("/search", middleware.SearchRateLimit(), controller.SearchOpsCampaigns)
+			opsCampaignRoute.GET("/:id", controller.GetOpsCampaign)
+			opsCampaignRoute.GET("/:id/stats", controller.GetOpsCampaignStats)
+			opsCampaignRoute.GET("/:id/participants", controller.GetOpsCampaignParticipants)
+			opsCampaignRoute.GET("/:id/rewards", controller.GetOpsCampaignRewards)
+		}
+
+		// User invitee history (ops — read-only + export, filtered by inviter_id = current user)
+		opsUserRoute := apiRouter.Group("/ops/user")
+		opsUserRoute.Use(middleware.OpsAuth())
+		{
+			opsUserRoute.GET("/columns", controller.GetOpsUserColumns)
+			opsUserRoute.GET("/", controller.GetOpsInvitees)
+			opsUserRoute.GET("/search", middleware.SearchRateLimit(), controller.SearchOpsInvitees)
+			opsUserRoute.POST("/export", middleware.CriticalRateLimit(), controller.ExportOpsInvitees)
+		}
 		logRoute := apiRouter.Group("/log")
 		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)
 		logRoute.GET("/stat", middleware.AdminAuth(), controller.GetLogsStat)

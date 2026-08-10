@@ -119,6 +119,34 @@ const (
 	MsgUserQuotaChangeZero           = "user.quota_change_zero"
 )
 
+// Ops (运营角色) related messages
+const (
+	MsgOpsCampaignNotAccessible             = "ops.campaign_not_accessible"
+	MsgOpsCampaignStatsNotAccessible        = "ops.campaign_stats_not_accessible"
+	MsgOpsCampaignParticipantsNotAccessible = "ops.campaign_participants_not_accessible"
+	MsgOpsCampaignRewardsNotAccessible      = "ops.campaign_rewards_not_accessible"
+	MsgOpsInvalidCampaignId                 = "ops.invalid_campaign_id"
+	MsgOpsUserAlreadyOpsOrHigher            = "ops.user_already_ops_or_higher"
+	MsgOpsUserNotOps                        = "ops.user_not_ops"
+	MsgOpsExportUnsupportedFormat           = "ops.export_unsupported_format"
+	MsgOpsExportHeaderId                    = "ops.export_header.id"
+	MsgOpsExportHeaderUsername              = "ops.export_header.username"
+	MsgOpsExportHeaderDisplayName           = "ops.export_header.display_name"
+	MsgOpsExportHeaderPhone                 = "ops.export_header.phone"
+	MsgOpsExportHeaderStatus                = "ops.export_header.status"
+	MsgOpsExportHeaderGroup                 = "ops.export_header.group"
+	MsgOpsExportHeaderQuota                 = "ops.export_header.quota"
+	MsgOpsExportHeaderUsedQuota             = "ops.export_header.used_quota"
+	MsgOpsExportHeaderRequestCount          = "ops.export_header.request_count"
+	MsgOpsExportHeaderCreatedAt             = "ops.export_header.created_at"
+	MsgOpsExportHeaderAffCode               = "ops.export_header.aff_code"
+	MsgOpsExportHeaderAffCount              = "ops.export_header.aff_count"
+	MsgOpsExportHeaderInviterId             = "ops.export_header.inviter_id"
+	MsgOpsStatusEnabled                     = "ops.status.enabled"
+	MsgOpsStatusDisabled                    = "ops.status.disabled"
+	MsgOpsStatusUnknown                     = "ops.status.unknown"
+)
+
 // Quota related messages
 const (
 	MsgQuotaNegative        = "quota.negative"

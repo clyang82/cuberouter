@@ -243,3 +243,55 @@ func TestCampaignListGettersReturnNonNilEmptySlices(t *testing.T) {
 	assert.NotNil(t, rewards)
 	assert.Len(t, rewards, 0)
 }
+
+func campaignWithInvitee(t *testing.T, name string, inviteeId int) *Campaign {
+	t.Helper()
+	config := CampaignConfig{InviteeUserId: inviteeId, InviteeUsername: "invitee"}
+	configJson, err := common.Marshal(config)
+	require.NoError(t, err)
+	return &Campaign{
+		Name: name, Type: CampaignTypeInvitation, Status: CampaignStatusActive,
+		StartAt: common.GetTimestamp() - 100, EndAt: 0, ConfigJson: string(configJson),
+	}
+}
+
+func TestGetCampaignsByInviteeUserId(t *testing.T) {
+	truncateTables(t)
+	// 12 and 123 are LIKE false positives for each other; 1234 for both.
+	insertCampaign(t, campaignWithInvitee(t, "mine", 12))
+	insertCampaign(t, campaignWithInvitee(t, "not-mine-123", 123))
+	insertCampaign(t, campaignWithInvitee(t, "not-mine-1234", 1234))
+	insertCampaign(t, campaignWithInvitee(t, "no-invitee", 0))
+
+	campaigns, total, err := GetCampaignsByInviteeUserId(12, 0, 10)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+	require.Len(t, campaigns, 1)
+	assert.Equal(t, "mine", campaigns[0].Name)
+
+	// pagination beyond the filtered set returns empty page with correct total
+	page, total, err := GetCampaignsByInviteeUserId(12, 10, 10)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+	assert.Empty(t, page)
+}
+
+func TestSearchCampaignsByInviteeUserId(t *testing.T) {
+	truncateTables(t)
+	a := insertCampaign(t, campaignWithInvitee(t, "search-campaign-a", 7))
+	insertCampaign(t, campaignWithInvitee(t, "search-campaign-b", 77))
+	insertCampaign(t, campaignWithInvitee(t, "foreign-campaign", 8))
+
+	// keyword matches name prefix and stays scoped
+	campaigns, total, err := SearchCampaignsByInviteeUserId(7, "search-campaign", 0, 10)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+	require.Len(t, campaigns, 1)
+	assert.Equal(t, "search-campaign-a", campaigns[0].Name)
+
+	// numeric keyword matches id exact (still scoped)
+	campaigns, total, err = SearchCampaignsByInviteeUserId(7, strconv.Itoa(a.Id), 0, 10)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+	assert.Equal(t, "search-campaign-a", campaigns[0].Name)
+}

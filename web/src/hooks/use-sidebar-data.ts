@@ -170,6 +170,24 @@ export function useSidebarData(): SidebarData {
           },
         ],
       },
+      {
+        id: 'ops',
+        title: t('Ops'),
+        items: [
+          {
+            title: t('Ops Campaigns'),
+            url: '/ops/campaign',
+            icon: Megaphone,
+            requiredRole: ROLE.OPS,
+          },
+          {
+            title: t('Invite History'),
+            url: '/ops/invite-history',
+            icon: Users,
+            requiredRole: ROLE.OPS,
+          },
+        ],
+      },
     ],
   }
 }

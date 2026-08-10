@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -82,6 +83,87 @@ func createMiddlewarePATUser(t *testing.T, username, token string) *model.User {
 	}
 	require.NoError(t, model.DB.Create(user).Error)
 	return user
+}
+
+func createMiddlewareUserWithRole(t *testing.T, username, token string, role, status int) *model.User {
+	t.Helper()
+	user := &model.User{
+		Username: username, Password: "password-placeholder", Role: role,
+		Status: status, Group: "default", AccessToken: &token, AuthVersion: 1,
+		AffCode: "middleware-aff-" + username,
+	}
+	require.NoError(t, model.DB.Create(user).Error)
+	return user
+}
+
+func TestOpsAuthRoleThreshold(t *testing.T) {
+	setupDashboardAuthMiddlewareTest(t)
+	router := gin.New()
+	router.GET("/ops", OpsAuth(), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"id": c.GetInt("id")})
+	})
+
+	tests := []struct {
+		name       string
+		role       int
+		status     int
+		wantStatus int
+		wantCode   string
+	}{
+		{name: "ops user allowed", role: common.RoleOpsUser, status: common.UserStatusEnabled, wantStatus: http.StatusOK},
+		{name: "admin allowed", role: common.RoleAdminUser, status: common.UserStatusEnabled, wantStatus: http.StatusOK},
+		{name: "root allowed", role: common.RoleRootUser, status: common.UserStatusEnabled, wantStatus: http.StatusOK},
+		{name: "common rejected", role: common.RoleCommonUser, status: common.UserStatusEnabled, wantStatus: http.StatusForbidden, wantCode: "AUTH_INSUFFICIENT_PRIVILEGE"},
+		{name: "guest rejected", role: common.RoleGuestUser, status: common.UserStatusEnabled, wantStatus: http.StatusForbidden, wantCode: "AUTH_INSUFFICIENT_PRIVILEGE"},
+		{name: "disabled ops rejected", role: common.RoleOpsUser, status: common.UserStatusDisabled, wantStatus: http.StatusUnauthorized, wantCode: "AUTH_USER_DISABLED"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			token := "ops.token." + strings.ReplaceAll(test.name, " ", "-")
+			user := createMiddlewareUserWithRole(t, "ops-"+test.name, token, test.role, test.status)
+			request := httptest.NewRequest(http.MethodGet, "/ops", nil)
+			request.Header.Set("Authorization", "Bearer "+token)
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+			assert.Equal(t, test.wantStatus, response.Code)
+			if test.wantCode != "" {
+				assert.Contains(t, response.Body.String(), test.wantCode)
+				return
+			}
+			var body struct {
+				ID int `json:"id"`
+			}
+			require.NoError(t, common.Unmarshal(response.Body.Bytes(), &body))
+			assert.Equal(t, user.Id, body.ID)
+		})
+	}
+}
+
+func TestOpsAuthSessionAccessTokenStillEnforcesMinRole(t *testing.T) {
+	setupDashboardAuthMiddlewareTest(t)
+	user := createMiddlewareUserWithRole(t, "ops-session-common", "ops.session.token", common.RoleCommonUser, common.UserStatusEnabled)
+	now := time.Now().Unix()
+	require.NoError(t, model.CreateUserSession(&model.UserSession{
+		SID: "ops-session", UserID: user.Id, Version: 1, UserAuthVersion: user.AuthVersion,
+		Status: model.UserSessionStatusActive, RefreshHash: "refresh-hash", LoginMethod: "password",
+		LastActiveAt: now, ExpiresAt: now + 3600,
+	}))
+	identity := service.AuthIdentity{
+		UserID: user.Id, SessionID: "ops-session",
+		UserAuthVersion: user.AuthVersion, SessionVersion: 1,
+	}
+	accessToken, _, err := service.IssueAccessToken(identity)
+	require.NoError(t, err)
+
+	router := gin.New()
+	router.GET("/ops", OpsAuth(), func(c *gin.Context) { c.Status(http.StatusNoContent) })
+	request := httptest.NewRequest(http.MethodGet, "/ops", nil)
+	request.Header.Set("Authorization", "Bearer "+accessToken)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	assert.Equal(t, http.StatusForbidden, response.Code)
+	assert.Contains(t, response.Body.String(), "AUTH_INSUFFICIENT_PRIVILEGE")
 }
 
 func TestUserAuthAllowsOpaqueDottedPAT(t *testing.T) {

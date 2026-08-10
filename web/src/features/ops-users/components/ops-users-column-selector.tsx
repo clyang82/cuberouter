@@ -1,0 +1,87 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import type { Table } from '@tanstack/react-table'
+import { useTranslation } from 'react-i18next'
+
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+
+import type { OpsUser, OpsUserColumnMeta } from '../types'
+
+type OpsUsersColumnSelectorProps = {
+  table: Table<OpsUser>
+  columns: OpsUserColumnMeta[]
+}
+
+export function OpsUsersColumnSelector({
+  table,
+  columns,
+}: OpsUsersColumnSelectorProps) {
+  const { t } = useTranslation()
+
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant='outline'
+            className='shrink-0'
+            aria-label={t('Column Settings')}
+          />
+        }
+      >
+        {t('Column Settings')}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align='end' className='w-[200px]'>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>{t('Select columns')}</DropdownMenuLabel>
+          {columns.map((meta) => {
+            const column = table.getColumn(meta.key)
+            if (!column) {
+              return null
+            }
+            // Use the translated header label so the selector matches the
+            // table; fall back to the server-provided label for unknown keys.
+            const label =
+              typeof column.columnDef.header === 'string'
+                ? column.columnDef.header
+                : meta.label
+            return (
+              <DropdownMenuCheckboxItem
+                key={meta.key}
+                checked={meta.required ? true : column.getIsVisible()}
+                disabled={meta.required}
+                onCheckedChange={(value) => column.toggleVisibility(!!value)}
+              >
+                {label}
+              </DropdownMenuCheckboxItem>
+            )
+          })}
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
