@@ -25,6 +25,7 @@ import {
   Key,
   LayoutDashboard,
   ListTodo,
+  Megaphone,
   MessageSquare,
   Puzzle,
   Radio,
@@ -144,6 +145,11 @@ export function useSidebarData(): SidebarData {
             title: t('Redemption Codes'),
             url: '/redemption-codes',
             icon: Ticket,
+          },
+          {
+            title: t('Campaigns'),
+            url: '/campaigns',
+            icon: Megaphone,
           },
           {
             title: t('Subscriptions'),

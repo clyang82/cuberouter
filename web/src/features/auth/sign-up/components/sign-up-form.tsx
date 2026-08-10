@@ -92,6 +92,7 @@ export function SignUpForm({
     defaultValues: {
       username: '',
       email: '',
+      phone: '',
       password: '',
       confirmPassword: '',
     },
@@ -164,6 +165,7 @@ export function SignUpForm({
         username: data.username,
         password: data.password,
         email: data.email || undefined,
+        phone: data.phone || undefined,
         verification_code: verificationCode || undefined,
         aff_code: getAffiliateCode(),
         turnstile: turnstileToken,
@@ -256,6 +258,26 @@ export function SignUpForm({
               <FormLabel>{t('Username')}</FormLabel>
               <FormControl>
                 <Input placeholder={t('Enter your username')} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Phone Field (optional) */}
+        <FormField
+          control={form.control}
+          name='phone'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('Phone')}</FormLabel>
+              <FormControl>
+                <Input
+                  type='tel'
+                  autoComplete='tel'
+                  placeholder={t('Phone number (optional)')}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

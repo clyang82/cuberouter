@@ -34,5 +34,18 @@
   "What does this plugin do?": "What does this plugin do?",
   "e.g. GitHub Tools": "e.g. GitHub Tools",
   "e.g. github-tools": "e.g. github-tools",
-  "© 2026 CubeRouter · Suanova Technology Ltd": "© 2026 CubeRouter · Suanova Technology Ltd"
+  "© 2026 CubeRouter · Suanova Technology Ltd": "© 2026 CubeRouter · Suanova Technology Ltd",
+  "Activated": "Activated",
+  "Campaign {{action}}": "Campaign {{action}}",
+  "Page {{page}} of {{totalPages}}": "Page {{page}} of {{totalPages}}",
+  "Participants": "Participants",
+  "Rewards": "Rewards",
+  "Bind Phone": "Bind Phone",
+  "Bind a phone number to your account.": "Bind a phone number to your account.",
+  "Current phone: {{phone}}. Enter a new phone number to change.": "Current phone: {{phone}}. Enter a new phone number to change.",
+  "Enter your phone number": "Enter your phone number",
+  "Failed to update phone": "Failed to update phone",
+  "Phone number": "Phone number",
+  "Phone number (optional)": "Phone number (optional)",
+  "Phone updated": "Phone updated"
 }

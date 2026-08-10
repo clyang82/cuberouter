@@ -268,6 +268,21 @@ func SetApiRouter(router *gin.Engine) {
 			redemptionRoute.DELETE("/invalid", controller.DeleteInvalidRedemption)
 			redemptionRoute.DELETE("/:id", controller.DeleteRedemption)
 		}
+		campaignRoute := apiRouter.Group("/campaign")
+		campaignRoute.Use(middleware.AdminAuth())
+		{
+			campaignRoute.GET("/", controller.GetAllCampaigns)
+			campaignRoute.GET("/search", controller.SearchCampaigns)
+			campaignRoute.GET("/:id", controller.GetCampaign)
+			campaignRoute.POST("/", controller.AddCampaign)
+			campaignRoute.PUT("/", controller.UpdateCampaign)
+			campaignRoute.PUT("/:id/status", controller.UpdateCampaignStatus)
+			campaignRoute.DELETE("/:id", controller.DeleteCampaign)
+			campaignRoute.GET("/:id/stats", controller.GetCampaignStats)
+			campaignRoute.GET("/:id/participants", controller.GetCampaignParticipants)
+			campaignRoute.GET("/:id/rewards", controller.GetCampaignRewards)
+			campaignRoute.POST("/rewards/:id/resend", controller.ResendCampaignRewardEmail)
+		}
 		logRoute := apiRouter.Group("/log")
 		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)
 		logRoute.GET("/stat", middleware.AdminAuth(), controller.GetLogsStat)

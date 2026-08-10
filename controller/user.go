@@ -266,6 +266,7 @@ func Register(c *gin.Context) {
 		Username:    user.Username,
 		Password:    user.Password,
 		DisplayName: user.Username,
+		Phone:       user.Phone,
 		InviterId:   inviterId,
 		Role:        common.RoleCommonUser, // 明确设置角色为普通用户
 	}
@@ -286,6 +287,13 @@ func Register(c *gin.Context) {
 	if err := model.DB.Where("username = ?", cleanUser.Username).First(&insertedUser).Error; err != nil {
 		common.ApiErrorI18n(c, i18n.MsgUserRegisterFailed)
 		return
+	}
+	if insertedUser.Phone != "" {
+		phoneUser := insertedUser
+		service.CampaignEngineInstance.OnPhoneFilled(&phoneUser)
+	}
+	if inviterId > 0 {
+		service.CampaignEngineInstance.OnInvitationRegister(&insertedUser, inviterId)
 	}
 	// 生成默认令牌
 	if constant.GenerateDefaultToken {
@@ -523,6 +531,7 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 		"role":              user.Role,
 		"status":            user.Status,
 		"email":             user.Email,
+		"phone":             user.Phone,
 		"github_id":         user.GitHubId,
 		"discord_id":        user.DiscordId,
 		"oidc_id":           user.OidcId,
@@ -739,6 +748,9 @@ func UpdateUser(c *gin.Context) {
 		"username": originUser.Username,
 		"id":       updatedUser.Id,
 	})
+	if originUser.Phone == "" && updatedUser.Phone != "" {
+		service.CampaignEngineInstance.OnPhoneFilled(&updatedUser)
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -871,6 +883,7 @@ func UpdateSelf(c *gin.Context) {
 		Username:    user.Username,
 		Password:    user.Password,
 		DisplayName: user.DisplayName,
+		Phone:       user.Phone,
 	}
 	if user.Password == "$I_LOVE_U" {
 		user.Password = "" // rollback to what it should be
@@ -922,9 +935,17 @@ func UpdateSelf(c *gin.Context) {
 		})
 		return
 	}
+	originUser, err := model.GetUserById(cleanUser.Id, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	if err := cleanUser.Update(false); err != nil {
 		common.ApiError(c, err)
 		return
+	}
+	if originUser.Phone == "" && cleanUser.Phone != "" {
+		service.CampaignEngineInstance.OnPhoneFilled(&cleanUser)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
@@ -1032,6 +1053,7 @@ func CreateUser(c *gin.Context) {
 		Username:    user.Username,
 		Password:    user.Password,
 		DisplayName: user.DisplayName,
+		Phone:       user.Phone,
 		Role:        user.Role, // 保持管理员设置的角色
 	}
 	authzTouched := false
@@ -1053,6 +1075,11 @@ func CreateUser(c *gin.Context) {
 		}
 	}
 	cleanUser.FinishInsert(0)
+
+	if cleanUser.Phone != "" {
+		phoneUser := cleanUser
+		service.CampaignEngineInstance.OnPhoneFilled(&phoneUser)
+	}
 
 	recordManageAuditFor(c, cleanUser.Id, "user.create", map[string]interface{}{
 		"username": cleanUser.Username,
