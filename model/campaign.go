@@ -436,3 +436,77 @@ func (c *Campaign) ParseCampaignConfig() (*CampaignConfig, error) {
 func campaignLog(format string, args ...interface{}) {
 	common.SysLog(fmt.Sprintf("[Campaign] "+format, args...))
 }
+
+// ============================================================
+// Ops (运营角色) Campaign Queries — invitee_user_id == caller
+// ============================================================
+
+// GetCampaignsByInviteeUserId returns campaigns whose config_json contains
+// invitee_user_id equal to the given user id. The DB side uses a LIKE
+// pre-filter; the Go side parses config_json for a precise match so LIKE
+// false positives (e.g. :7 matching :77) are excluded.
+func GetCampaignsByInviteeUserId(userId int, startIdx int, num int) (campaigns []*Campaign, total int64, err error) {
+	likePattern := fmt.Sprintf("%%\"invitee_user_id\":%d%%", userId)
+	var allCampaigns []*Campaign
+	if err := DB.Where("config_json LIKE ?", likePattern).Order("id desc").Find(&allCampaigns).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var filtered []*Campaign
+	for _, c := range allCampaigns {
+		config, parseErr := c.ParseCampaignConfig()
+		if parseErr != nil {
+			continue
+		}
+		if config.InviteeUserId == userId {
+			filtered = append(filtered, c)
+		}
+	}
+
+	total = int64(len(filtered))
+	if startIdx >= len(filtered) {
+		return []*Campaign{}, total, nil
+	}
+	end := startIdx + num
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+	return filtered[startIdx:end], total, nil
+}
+
+// SearchCampaignsByInviteeUserId searches the user's invitee-scoped campaigns
+// by keyword (name prefix, or id exact for numeric keywords).
+func SearchCampaignsByInviteeUserId(userId int, keyword string, startIdx int, num int) (campaigns []*Campaign, total int64, err error) {
+	likePattern := fmt.Sprintf("%%\"invitee_user_id\":%d%%", userId)
+	var allCampaigns []*Campaign
+	query := DB.Where("config_json LIKE ?", likePattern)
+	if id, parseErr := strconv.Atoi(keyword); parseErr == nil {
+		query = query.Where("id = ? OR name LIKE ?", id, keyword+"%")
+	} else {
+		query = query.Where("name LIKE ?", keyword+"%")
+	}
+	if err := query.Order("id desc").Find(&allCampaigns).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var filtered []*Campaign
+	for _, c := range allCampaigns {
+		config, parseErr := c.ParseCampaignConfig()
+		if parseErr != nil {
+			continue
+		}
+		if config.InviteeUserId == userId {
+			filtered = append(filtered, c)
+		}
+	}
+
+	total = int64(len(filtered))
+	if startIdx >= len(filtered) {
+		return []*Campaign{}, total, nil
+	}
+	end := startIdx + num
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+	return filtered[startIdx:end], total, nil
+}

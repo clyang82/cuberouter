@@ -465,6 +465,25 @@ func GetUserById(id int, selectAll bool) (*User, error) {
 	return &user, err
 }
 
+// GetUsersByIds returns a map of user id to user for the given ids, with
+// passwords omitted. Missing ids are simply absent from the map.
+func GetUsersByIds(ids []int) (map[int]*User, error) {
+	byId := make(map[int]*User, len(ids))
+	if len(ids) == 0 {
+		return byId, nil
+	}
+	var users []*User
+	if err := DB.Omit("password", "access_token").
+		Where("id IN ?", ids).
+		Find(&users).Error; err != nil {
+		return nil, err
+	}
+	for _, u := range users {
+		byId[u.Id] = u
+	}
+	return byId, nil
+}
+
 func GetUserIdByAffCode(affCode string) (int, error) {
 	if affCode == "" {
 		return 0, errors.New("affCode 为空！")
@@ -1419,4 +1438,125 @@ func RootUserExists() bool {
 		return false
 	}
 	return true
+}
+
+// ============================================================
+// Ops (运营角色) Invitee Queries — scoped to inviter_id = caller
+// ============================================================
+
+// GetOpsInvitees returns a paged list of users invited by the given inviter.
+func GetOpsInvitees(inviterId int, pageInfo *common.PageInfo) ([]*User, int64, error) {
+	var users []*User
+	var total int64
+
+	if err := DB.Model(&User{}).Where("inviter_id = ?", inviterId).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if total > 0 {
+		if err := DB.Omit("password", "access_token").
+			Where("inviter_id = ?", inviterId).
+			Order("created_at DESC, id DESC").
+			Offset(pageInfo.GetStartIdx()).
+			Limit(pageInfo.GetPageSize()).
+			Find(&users).Error; err != nil {
+			return nil, 0, err
+		}
+	}
+
+	return users, total, nil
+}
+
+// SearchOpsInvitees searches the inviter's invitees by keyword across
+// id (numeric keywords only), username, email, display_name and phone.
+func SearchOpsInvitees(inviterId int, keyword string, startIdx int, num int) ([]*User, int64, error) {
+	var users []*User
+	var total int64
+
+	query := DB.Model(&User{}).Where("inviter_id = ?", inviterId)
+
+	if keyword != "" {
+		likeCondition := "username LIKE ? OR email LIKE ? OR display_name LIKE ? OR phone LIKE ?"
+		if keywordInt, atoiErr := strconv.Atoi(keyword); atoiErr == nil {
+			query = query.Where(
+				"id = ? OR "+likeCondition,
+				keywordInt,
+				"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%",
+			)
+		} else {
+			query = query.Where(likeCondition,
+				"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
+		}
+	}
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if err := query.Omit("password", "access_token").Order("created_at DESC, id DESC").Limit(num).Offset(startIdx).Find(&users).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
+}
+
+// opsExportBatchSize is the batch size for ops invitee CSV exports.
+const opsExportBatchSize = 200
+
+// opsExportMaxIds caps how many ids one ops export request may select, so a
+// request cannot trigger unbounded database work.
+const opsExportMaxIds = 1000
+
+// opsExportMaxRows caps how many invitees a keyword ops export may return
+// before it is refused, so the in-memory accumulation stays bounded.
+const opsExportMaxRows = 10000
+
+// ExportOpsInviteesByIds exports invitees by id list, filtering out ids that
+// do not belong to the given inviter. Errors on a batch are logged and the
+// batch is skipped.
+func ExportOpsInviteesByIds(inviterId int, ids []int) ([]*User, error) {
+	if len(ids) > opsExportMaxIds {
+		return nil, fmt.Errorf("ops export: too many ids selected (%d), maximum is %d", len(ids), opsExportMaxIds)
+	}
+	var users []*User
+	for i := 0; i < len(ids); i += opsExportBatchSize {
+		end := i + opsExportBatchSize
+		if end > len(ids) {
+			end = len(ids)
+		}
+		var batch []*User
+		if err := DB.Omit("password", "access_token").
+			Where("id IN ? AND inviter_id = ?", ids[i:end], inviterId).
+			Find(&batch).Error; err != nil {
+			return nil, err
+		}
+		users = append(users, batch...)
+	}
+	return users, nil
+}
+
+// ExportOpsInviteesByKeyword exports all invitees matching the keyword,
+// paging through SearchOpsInvitees until a short page is returned.
+func ExportOpsInviteesByKeyword(inviterId int, keyword string) ([]*User, error) {
+	var allUsers []*User
+	page := 1
+	for {
+		startIdx := (page - 1) * opsExportBatchSize
+		users, _, err := SearchOpsInvitees(inviterId, keyword, startIdx, opsExportBatchSize)
+		if err != nil {
+			return nil, err
+		}
+		if len(users) == 0 {
+			break
+		}
+		allUsers = append(allUsers, users...)
+		if len(allUsers) > opsExportMaxRows {
+			return nil, fmt.Errorf("ops export: too many invitees match the keyword (more than %d), narrow the keyword or export by ids", opsExportMaxRows)
+		}
+		if len(users) < opsExportBatchSize {
+			break
+		}
+		page++
+	}
+	return allUsers, nil
 }

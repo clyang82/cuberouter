@@ -1194,6 +1194,28 @@ func ManageUser(c *gin.Context) {
 			return
 		}
 		user.Role = common.RoleCommonUser
+	case "promote_ops":
+		// admin/root only; ops is below admin in the hierarchy
+		if myRole < common.RoleAdminUser {
+			common.ApiErrorI18n(c, i18n.MsgUserAdminCannotPromote)
+			return
+		}
+		if user.Role >= common.RoleOpsUser {
+			common.ApiErrorI18n(c, i18n.MsgOpsUserAlreadyOpsOrHigher)
+			return
+		}
+		user.Role = common.RoleOpsUser
+	case "demote_ops":
+		// admin/root only
+		if myRole < common.RoleAdminUser {
+			common.ApiErrorI18n(c, i18n.MsgUserAdminCannotPromote)
+			return
+		}
+		if user.Role != common.RoleOpsUser {
+			common.ApiErrorI18n(c, i18n.MsgOpsUserNotOps)
+			return
+		}
+		user.Role = common.RoleCommonUser
 	case "add_quota":
 		switch req.Mode {
 		case "add":

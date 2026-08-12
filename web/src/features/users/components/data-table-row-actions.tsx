@@ -28,6 +28,8 @@ import {
   ShieldAlert,
   Link2,
   CreditCard,
+  UserMinus,
+  UserPlus,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -72,6 +74,8 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const [resetTwoFAOpen, setResetTwoFAOpen] = useState(false)
   const [bindingDialogOpen, setBindingDialogOpen] = useState(false)
   const [subscriptionsDialogOpen, setSubscriptionsDialogOpen] = useState(false)
+  const [promoteOpsOpen, setPromoteOpsOpen] = useState(false)
+  const [demoteOpsOpen, setDemoteOpsOpen] = useState(false)
 
   const handleEdit = () => {
     setCurrentRow(user)
@@ -198,6 +202,34 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
         )}
 
+        {user.role < USER_ROLE.OPS && (
+          <DropdownMenuItem
+            onSelect={(event) => {
+              event.preventDefault()
+              setPromoteOpsOpen(true)
+            }}
+          >
+            {t('Promote to Ops')}
+            <DropdownMenuShortcut>
+              <UserPlus size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+
+        {user.role === USER_ROLE.OPS && (
+          <DropdownMenuItem
+            onSelect={(event) => {
+              event.preventDefault()
+              setDemoteOpsOpen(true)
+            }}
+          >
+            {t('Demote from Ops')}
+            <DropdownMenuShortcut>
+              <UserMinus size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+
         <DropdownMenuItem
           onSelect={(event) => {
             event.preventDefault()
@@ -286,6 +318,30 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         )}
         confirmText={t('Reset 2FA')}
         handleConfirm={handleResetTwoFA}
+      />
+
+      <ConfirmDialog
+        open={promoteOpsOpen}
+        onOpenChange={setPromoteOpsOpen}
+        title={t('Promote to Ops')}
+        desc={t(
+          'Promote {{username}} to Ops? They will get read-only access to their invitees and invitation campaigns.',
+          { username: user.username }
+        )}
+        confirmText={t('Promote to Ops')}
+        handleConfirm={() => handleManage('promote_ops')}
+      />
+
+      <ConfirmDialog
+        open={demoteOpsOpen}
+        onOpenChange={setDemoteOpsOpen}
+        title={t('Demote from Ops')}
+        desc={t(
+          'Demote {{username}} from Ops? They will lose access to the ops pages.',
+          { username: user.username }
+        )}
+        confirmText={t('Demote from Ops')}
+        handleConfirm={() => handleManage('demote_ops')}
       />
 
       <UserBindingDialog
