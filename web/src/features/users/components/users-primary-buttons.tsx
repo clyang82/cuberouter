@@ -16,24 +16,65 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Plus } from 'lucide-react'
+import { getRouteApi } from '@tanstack/react-router'
+import { Download, Plus } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 
+import { exportUsers } from '../api'
+import { buildExportPayload } from '../lib/export-utils'
 import { useUsers } from './users-provider'
+
+const route = getRouteApi('/_authenticated/users/')
 
 export function UsersPrimaryButtons() {
   const { t } = useTranslation()
   const { setOpen, setCurrentRow } = useUsers()
+  const search = route.useSearch()
+  const [isExporting, setIsExporting] = useState(false)
 
   const handleCreate = () => {
     setCurrentRow(null)
     setOpen('create')
   }
 
+  // 导出全部: send the current table filter (keyword/group from the URL
+  // search); an empty filter means the backend exports all users.
+  const handleExportAll = async () => {
+    setIsExporting(true)
+    try {
+      const payload = buildExportPayload([], {
+        keyword: search.filter ?? '',
+        group: search.group ?? '',
+      })
+      const { blob, filename } = await exportUsers(payload)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename || 'users.csv'
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error(t('Failed to export users'))
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   return (
     <div className='flex gap-2'>
+      <Button
+        size='sm'
+        variant='outline'
+        onClick={handleExportAll}
+        disabled={isExporting}
+      >
+        <Download className='h-4 w-4' />
+        {t('Export All')}
+      </Button>
       <Button size='sm' onClick={handleCreate}>
         <Plus className='h-4 w-4' />
         {t('Add User')}

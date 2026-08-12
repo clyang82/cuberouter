@@ -139,9 +139,14 @@ func SetApiRouter(router *gin.Engine) {
 				adminRoute.GET("/:id/oauth/bindings", controller.GetUserOAuthBindingsByAdmin)
 				adminRoute.DELETE("/:id/oauth/bindings/:provider_id", controller.UnbindCustomOAuthByAdmin)
 				adminRoute.DELETE("/:id/bindings/:binding_type", controller.AdminClearUserBinding)
+				// 更具体的子路径在前，防御通配冲突（Gin radix tree 当前正确处理，
+				// 但显式顺序更安全；详见 router/user_invitees_route_test.go）
+				adminRoute.GET("/:id/invitees", controller.GetUserInvitees)
+				adminRoute.GET("/:id/quota-dates", controller.GetUserQuotaDatesByAdmin)
 				adminRoute.GET("/:id", controller.GetUser)
 				adminRoute.POST("/", controller.CreateUser)
 				adminRoute.POST("/manage", controller.ManageUser)
+				adminRoute.POST("/export", controller.ExportUsers)
 				adminRoute.PUT("/", controller.UpdateUser)
 				adminRoute.DELETE("/:id", controller.DeleteUser)
 				adminRoute.DELETE("/:id/reset_passkey", controller.AdminResetPasskey)
