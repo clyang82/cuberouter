@@ -147,6 +147,35 @@ const (
 	MsgOpsStatusUnknown                     = "ops.status.unknown"
 )
 
+// Admin user management related messages
+const (
+	MsgAdminCannotViewUserDashboard  = "admin.cannot_view_user_dashboard"
+	MsgAdminQuotaDatesRangeExceeded  = "admin.quota_dates_range_exceeded"
+	MsgAdminExportUnsupportedFormat  = "admin.export_unsupported_format"
+	MsgAdminExportHeaderId           = "admin.export_header.id"
+	MsgAdminExportHeaderUsername     = "admin.export_header.username"
+	MsgAdminExportHeaderDisplayName  = "admin.export_header.display_name"
+	MsgAdminExportHeaderRole         = "admin.export_header.role"
+	MsgAdminExportHeaderStatus       = "admin.export_header.status"
+	MsgAdminExportHeaderGroup        = "admin.export_header.group"
+	MsgAdminExportHeaderQuota        = "admin.export_header.quota"
+	MsgAdminExportHeaderUsedQuota    = "admin.export_header.used_quota"
+	MsgAdminExportHeaderRequestCount = "admin.export_header.request_count"
+	MsgAdminExportHeaderCreatedAt    = "admin.export_header.created_at"
+	MsgAdminExportHeaderRemark       = "admin.export_header.remark"
+	MsgAdminExportHeaderAffCode      = "admin.export_header.aff_code"
+	MsgAdminExportHeaderAffCount     = "admin.export_header.aff_count"
+	MsgAdminExportHeaderInviterId    = "admin.export_header.inviter_id"
+	MsgAdminRoleCommon               = "admin.role.common"
+	MsgAdminRoleOps                  = "admin.role.ops"
+	MsgAdminRoleAdmin                = "admin.role.admin"
+	MsgAdminRoleRoot                 = "admin.role.root"
+	MsgAdminRoleUnknown              = "admin.role.unknown"
+	MsgAdminStatusEnabled            = "admin.status.enabled"
+	MsgAdminStatusDisabled           = "admin.status.disabled"
+	MsgAdminStatusUnknown            = "admin.status.unknown"
+)
+
 // Quota related messages
 const (
 	MsgQuotaNegative        = "quota.negative"

@@ -1560,3 +1560,98 @@ func ExportOpsInviteesByKeyword(inviterId int, keyword string) ([]*User, error) 
 	}
 	return allUsers, nil
 }
+
+// GetUserInvitees returns a paged list of users invited by the given inviter,
+// newest-first. The controller projects the rows into dto.InviteeBrief.
+func GetUserInvitees(inviterId int, pageInfo *common.PageInfo) ([]*User, int64, error) {
+	var users []*User
+	var total int64
+
+	if err := DB.Model(&User{}).Where("inviter_id = ?", inviterId).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if total > 0 {
+		if err := DB.Omit("password", "access_token").
+			Where("inviter_id = ?", inviterId).
+			Order("created_at DESC, id DESC").
+			Offset(pageInfo.GetStartIdx()).
+			Limit(pageInfo.GetPageSize()).
+			Find(&users).Error; err != nil {
+			return nil, 0, err
+		}
+	} else {
+		users = make([]*User, 0)
+	}
+
+	return users, total, nil
+}
+
+// userExportBatchSize is the batch size for admin user CSV exports.
+const userExportBatchSize = 200
+
+// ErrExportRowsExceeded reports that a filter export matched more than the
+// caller-allowed maximum; the caller surfaces a localized batch_too_many error.
+var ErrExportRowsExceeded = errors.New("export row limit exceeded")
+
+// ExportUsersByIds exports users by id list, batched at userExportBatchSize.
+// Unscoped like ExportUsersByFilter: a soft-deleted user selected by id is
+// still exported (the admin table shows those rows). A batch error is logged
+// via common.SysLog and returned so the caller fails the request instead of
+// emitting a truncated CSV.
+func ExportUsersByIds(ids []int) ([]*User, error) {
+	var users []*User
+	for i := 0; i < len(ids); i += userExportBatchSize {
+		end := i + userExportBatchSize
+		if end > len(ids) {
+			end = len(ids)
+		}
+		var batch []*User
+		if err := DB.Unscoped().Omit("password", "access_token").
+			Where("id IN ?", ids[i:end]).
+			Find(&batch).Error; err != nil {
+			common.SysLog(fmt.Sprintf("ExportUsers ids batch err: %v", err))
+			return nil, err
+		}
+		users = append(users, batch...)
+	}
+	return users, nil
+}
+
+// ExportUsersByFilter exports users matching the keyword/group filter, paging
+// through GetAllUsers (empty filter) or SearchUsers until a short page is
+// returned. maxRows bounds the export: when the first page reports a total
+// above it, ErrExportRowsExceeded is returned before further rows are fetched
+// (0 means no limit). A batch error is logged via common.SysLog and returned.
+func ExportUsersByFilter(keyword, group string, maxRows int) ([]*User, error) {
+	var allUsers []*User
+	page := 1
+	for {
+		var users []*User
+		var total int64
+		var err error
+		if keyword == "" && group == "" {
+			pi := &common.PageInfo{Page: page, PageSize: userExportBatchSize}
+			users, total, err = GetAllUsers(pi)
+		} else {
+			startIdx := (page - 1) * userExportBatchSize
+			users, total, err = SearchUsers(keyword, group, nil, nil, startIdx, userExportBatchSize)
+		}
+		if err != nil {
+			common.SysLog(fmt.Sprintf("ExportUsers filter batch err: %v", err))
+			return nil, err
+		}
+		if maxRows > 0 && total > int64(maxRows) {
+			return nil, ErrExportRowsExceeded
+		}
+		if len(users) == 0 {
+			break
+		}
+		allUsers = append(allUsers, users...)
+		if len(users) < userExportBatchSize {
+			break
+		}
+		page++
+	}
+	return allUsers, nil
+}
