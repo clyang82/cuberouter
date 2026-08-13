@@ -78,8 +78,8 @@ func resolveUserSortOptions(sortOptions []UserSortOptions) UserSortOptions {
 // Otherwise, the sensitive information will be saved on local storage in plain text!
 type User struct {
 	Id               int                        `json:"id"`
-	Username         string                     `json:"username" gorm:"unique;index" validate:"max=20"`
-	Password         string                     `json:"password" gorm:"not null;" validate:"min=8,max=20"`
+	Username         string                     `json:"username" gorm:"unique;index" validate:"max=50"`
+	Password         string                     `json:"password" gorm:"not null;" validate:"min=8,max=20,passwordStrength"`
 	OriginalPassword string                     `json:"original_password" gorm:"-:all"` // this field is only for Password change verification, don't save it to database!
 	DisplayName      string                     `json:"display_name" gorm:"index" validate:"max=20"`
 	Role             int                        `json:"role" gorm:"type:int;default:1"`   // admin, common
@@ -491,6 +491,52 @@ func GetUserIdByAffCode(affCode string) (int, error) {
 	var user User
 	err := DB.Select("id").First(&user, "aff_code = ?", affCode).Error
 	return user.Id, err
+}
+
+// HasInvitees 检查指定用户是否已经邀请过其他用户（即 users 表中是否存在 inviter_id == userId 的记录）
+func HasInvitees(userId int) (bool, error) {
+	return HasInviteesTx(DB, userId)
+}
+
+// HasInviteesTx 是 HasInvitees 的事务内变体：调用方在与行锁相同的事务中
+// 检查邀请记录（见 UpdateUser 的分组修改守卫），避免检查与写入之间的竞态。
+func HasInviteesTx(tx *gorm.DB, userId int) (bool, error) {
+	var count int64
+	if err := tx.Model(&User{}).Where("inviter_id = ?", userId).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// ErrUserGroupModifyForbidden 用户已有邀请记录时禁止修改分组
+var ErrUserGroupModifyForbidden = errors.New("user has invitees, group modification forbidden")
+
+// UpdateUserGroupWithInviteesTx 更新用户分组，并在同一事务内同步其直接下级
+// 的分组，保持"邀请人与下级同组"不变量（注册时下级继承邀请人分组，订阅驱动
+// 的分组变更同样联动下级）。订阅的升级/降级/过期恢复路径使用本函数；管理员的
+// UpdateUser 改分组仍由 ErrUserGroupModifyForbidden 守卫拒绝。
+func UpdateUserGroupWithInviteesTx(tx *gorm.DB, userId int, group string) error {
+	if err := tx.Model(&User{}).Where("id = ?", userId).Update("group", group).Error; err != nil {
+		return err
+	}
+	return tx.Model(&User{}).Where("inviter_id = ?", userId).Update("group", group).Error
+}
+
+// GetUserGroupByIdTx 在事务内锁定用户行并读取其分组。锁在事务提交/回滚时
+// 释放；调用方应把依赖该分组的一致性读取或写入放在同一事务中（注册继承
+// 邀请人分组、UpdateUser 的分组修改守卫、订阅升降级等）。
+func GetUserGroupByIdTx(tx *gorm.DB, userId int) (string, error) {
+	if userId <= 0 {
+		return "", errors.New("invalid userId")
+	}
+	if tx == nil {
+		tx = DB
+	}
+	var user User
+	if err := lockForUpdate(tx).First(&user, userId).Error; err != nil {
+		return "", err
+	}
+	return user.Group, nil
 }
 
 func DeleteUserById(id int) (err error) {
