@@ -2361,7 +2361,7 @@
     "Invited Users": "受邀用戶",
     "Invitee": "被邀請人",
     "Invitee Reward": "受邀者獎勵",
-    "Invitees": "邀請記錄",
+    "Invitees": "受邀使用者",
     "Inviter": "邀請人",
     "Inviter Reward": "邀請者獎勵",
     "Invites": "邀請",
@@ -5423,7 +5423,7 @@
     "Failed to search invitees": "搜尋邀請用戶失敗",
     "Invite Count": "邀請數",
     "No invitees found": "未找到邀請用戶",
-    "No invitees yet": "暫無邀請記錄",
+    "No invitees yet": "暫無受邀使用者",
     "Search invitees": "搜尋邀請用戶",
     "Select columns": "選擇欄位"
   }

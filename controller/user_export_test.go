@@ -245,3 +245,35 @@ func TestExportUsersRejectsMalformedJson(t *testing.T) {
 	assert.False(t, body.Success)
 	assert.Equal(t, common.TranslateMessage(c, i18n.MsgInvalidParams), body.Message)
 }
+
+// An oversized ids list is rejected with batch_too_many before any query runs.
+func TestExportUsersRejectsTooManyIds(t *testing.T) {
+	setupManageUserTestDB(t)
+	gin.SetMode(gin.TestMode)
+
+	var b strings.Builder
+	b.WriteString(`{"ids":[`)
+	for i := 1; i <= maxExportIds+1; i++ {
+		if i > 1 {
+			b.WriteString(",")
+		}
+		fmt.Fprintf(&b, "%d", i)
+	}
+	b.WriteString(`]}`)
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/user/export", strings.NewReader(b.String()))
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set("id", 1)
+	c.Set("username", "admin-1")
+	ExportUsers(c)
+
+	var body struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &body))
+	assert.False(t, body.Success)
+	assert.Equal(t, common.TranslateMessage(c, i18n.MsgBatchTooMany, map[string]any{"Max": maxExportIds}), body.Message)
+}

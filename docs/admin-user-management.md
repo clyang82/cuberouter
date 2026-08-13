@@ -7,7 +7,7 @@
 Admin-side (role >= 10) user management extensions built on top of the standard user CRUD:
 
 - **Invitee history** — `GET /api/user/:id/invitees`: paginated view of **any** user's invited users (`inviter_id == :id`), returned as the minimal `dto.InviteeBrief` (**8 fields** — no `phone_region`, this repo has no such column).
-- **User CSV export** — `POST /api/user/export`: CSV of **all** users, either by explicit `ids` or by `keyword` + `group` filter; batch 200, UTF-8 BOM, ASCII filename `users_<ts>.csv`; all batches are pre-fetched **before** anything is written, so a batch error fails the request instead of emitting a partial CSV.
+- **User CSV export** — `POST /api/user/export`: CSV of **all** users, either by explicit `ids` or by `keyword` + `group` filter; batch 200, UTF-8 BOM, ASCII filename `users_<ts>.csv`; all batches are pre-fetched **before** anything is written, so a batch error fails the request instead of emitting a partial CSV. Requests are bounded (`maxExportIds = 10000` ids / `maxExportRows = 50000` rows, exceeded → `common.batch_too_many`).
 - **User data dashboard** — `GET /api/user/:id/quota-dates`: admin proxy for a user's quota/usage trend (`quota_data` table), gated by `canViewUserDashboard`.
 
 ### Relationship with ops-role-system.md
@@ -37,7 +37,7 @@ Admin-side (role >= 10) user management extensions built on top of the standard 
 
 ### What an Admin cannot do
 
-- View the dashboard of a **higher** role: `canViewUserDashboard` requires `myRole > target.Role` (root 100 is the only exception). E.g. admin (10) cannot view root's (100) dashboard; root cannot be viewed by anyone.
+- View the dashboard of a **higher** role: `canViewUserDashboard` requires `myRole > target.Role` (root 100 is the only exception). E.g. admin (10) cannot view root's (100) dashboard, while root (100) can view any user's dashboard — including another root's.
 - Export/dashboard require `AdminAuth` (min role 10); ops (5) and common users are rejected.
 - The invitees endpoint is read-only — no invite relationship mutation exists here (invitees are created at registration via `aff_code`).
 
@@ -61,7 +61,7 @@ Admin-side (role >= 10) user management extensions built on top of the standard 
 
 ### Routes (`router/api-router.go`)
 
-```
+```text
 adminRoute := userRoute.Group("/").Use(middleware.AdminAuth())   // userRoute: /api/user
   GET  /:id/invitees    GetUserInvitees          // 必须在 /:id 之前注册
   GET  /:id/quota-dates GetUserQuotaDatesByAdmin
@@ -105,7 +105,7 @@ Note: `/:id/invitees` and `/:id/quota-dates` are registered **before** `GET /:id
 ### Frontend
 
 - `web/src/features/users/components/users-table.tsx` + `data-table-row-actions.tsx` — row actions open the `UserInviteesDialog` (invitees) and `UserDashboardDialog` (data dashboard).
-- `web/src/features/users/components/dialogs/user-invitees-dialog.tsx` — paginated modal over `getUserInvitees` (`GET /api/user/:id/invitees`); columns: Username / Email / Phone / Status / Group / Role / Created At; raw phone only (no region — the brief has no `phone_region`); empty state `t('No invitees yet')` (zh: 暂无邀请记录).
+- `web/src/features/users/components/dialogs/user-invitees-dialog.tsx` — paginated modal over `getUserInvitees` (`GET /api/user/:id/invitees`); columns: Username / Email / Phone / Status / Group / Role / Created At; raw phone only (no region — the brief has no `phone_region`); empty state `t('No invitees yet')` (zh: 暂无受邀用户).
 - `web/src/features/users/components/user-dashboard-dialog.tsx` — data dashboard modal over `getUserQuotaDates`, rendering the quota/usage trend.
 - `web/src/features/users/api.ts` — `getUserInvitees`, `getUserQuotaDates`, `exportUsers` (blob download, filename parsed from `Content-Disposition`).
 - `web/src/features/users/lib/export-utils.ts` — `buildExportPayload(selectedIds, filter)`: selected ids win when present, otherwise the current table filter (keyword/group) is sent; an empty payload means "export all users" (mirrors the backend ids-over-filter rule).
@@ -128,14 +128,14 @@ Note: `/:id/invitees` and `/:id/quota-dates` are registered **before** `GET /:id
 
 ### Frontend (`bun test`)
 
-- `web/src/features/users/lib/export-utils.test.ts` — `buildExportPayload`: ids win over the filter; empty filter fields omitted; empty payload means "export all users".
+- `web/src/features/users/lib/__tests__/export-utils.test.ts` — `buildExportPayload`: ids win over the filter; empty filter fields omitted; empty payload means "export all users".
 
-**Adaptations from the source doc's test list**: the source's "Not covered" cases are all covered here. The suggested log-line `mode=selected|filter` assertions were dropped (tests assert CSV output, not the audit line); the suggested integration cases (ops rejected by `AdminAuth`; admin export of another admin's invitees succeeding) are covered by the auth middleware role-threshold tests and the model-level `TestGetUserInviteesIgnoresTargetRole`; the suggested "batch errors log and stop gracefully" became `TestExportUsersFailsWithoutWritingCsvOnDbError` — the port deliberately fails the whole request instead of streaming a partial CSV; the suggested 9-field `InviteeBrief` checks became 8-field (no `phone_region`).
+**Adaptations from the source doc's test list**: the source's "Not covered" cases are all covered here. The suggested log-line `mode=selected|filter` assertions were dropped (tests assert CSV output, not the audit line); the suggested integration cases (ops rejected by `AdminAuth`; admin export of another admin's invitees succeeding) are covered at the **component level** — the auth middleware role-threshold tests cover ops-rejected-by-`AdminAuth`, and the model-level `TestGetUserInviteesIgnoresTargetRole` covers the absence of role scoping for invitees (no endpoint-level test exists: the controller tests bypass `AdminAuth` and the route test registers stub handlers); the suggested "batch errors log and stop gracefully" became `TestExportUsersFailsWithoutWritingCsvOnDbError` — the port deliberately fails the whole request instead of streaming a partial CSV; the suggested 9-field `InviteeBrief` checks became 8-field (no `phone_region`).
 
 ---
 
 ## 4. Known Limitations
 
-- **Export is eager, not streamed** — all matching users are pre-fetched into memory before the CSV is written (the price of fail-before-write). Very large user tables consume memory proportional to the export size.
+- **Export is eager, not streamed** — all matching users are pre-fetched into memory before the CSV is written (the price of fail-before-write). Very large user tables consume memory proportional to the export size; requests are capped at `maxExportIds = 10000` ids / `maxExportRows = 50000` rows (`common.batch_too_many` when exceeded).
 - **Dashboard range is capped at 1 month** (`adminQuotaDatesMaxRange`) per request; longer trends require multiple requests.
 - **The admin invitees endpoint is a raw projection of the invite relationship** — scoped purely by `inviter_id`, with no additional role or group filtering.

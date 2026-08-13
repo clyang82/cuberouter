@@ -42,9 +42,12 @@ func GetUserQuotaDatesByAdmin(c *gin.Context) {
 		return
 	}
 
-	start, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
-	end, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
-	if end-start > adminQuotaDatesMaxRange {
+	// Parse failures and negative values must be rejected, not silently
+	// coerced to 0; end < start and extreme int64 pairs would otherwise
+	// bypass (or overflow) the range check below.
+	start, startErr := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
+	end, endErr := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
+	if startErr != nil || endErr != nil || start < 0 || end < 0 || end < start || end-start > adminQuotaDatesMaxRange {
 		common.ApiErrorI18n(c, i18n.MsgAdminQuotaDatesRangeExceeded)
 		return
 	}

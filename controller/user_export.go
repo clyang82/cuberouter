@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -86,6 +87,13 @@ type ExportUsersRequest struct {
 	Format  string `json:"format"`
 }
 
+// Export bounds: an unbounded ids list or a filter matching the whole user
+// table would materialize the complete result set on the request path.
+const (
+	maxExportIds  = 10000
+	maxExportRows = 50000
+)
+
 // ExportUsers streams the full user table as a CSV file. Already AdminAuth'd.
 // The ids take precedence over the keyword/group filter when both are given.
 func ExportUsers(c *gin.Context) {
@@ -96,6 +104,10 @@ func ExportUsers(c *gin.Context) {
 	}
 	if req.Format != "" && req.Format != "csv" {
 		common.ApiErrorI18n(c, i18n.MsgAdminExportUnsupportedFormat, map[string]any{"Format": req.Format})
+		return
+	}
+	if len(req.Ids) > maxExportIds {
+		common.ApiErrorI18n(c, i18n.MsgBatchTooMany, map[string]any{"Max": maxExportIds})
 		return
 	}
 
@@ -113,9 +125,13 @@ func ExportUsers(c *gin.Context) {
 		users, err = model.ExportUsersByIds(req.Ids)
 	} else {
 		mode = "filter"
-		users, err = model.ExportUsersByFilter(req.Keyword, req.Group)
+		users, err = model.ExportUsersByFilter(req.Keyword, req.Group, maxExportRows)
 	}
 	if err != nil {
+		if errors.Is(err, model.ErrExportRowsExceeded) {
+			common.ApiErrorI18n(c, i18n.MsgBatchTooMany, map[string]any{"Max": maxExportRows})
+			return
+		}
 		common.ApiError(c, err)
 		return
 	}

@@ -57,8 +57,11 @@ export function DataTableBulkActions({ table }: DataTableBulkActionsProps) {
       link.download = filename || 'users.csv'
       link.click()
       URL.revokeObjectURL(url)
-    } catch {
-      toast.error(t('Failed to export users'))
+    } catch (error) {
+      // exportUsers throws the backend's error envelope message, so the admin
+      // sees the real reason (e.g. unsupported format, too many rows).
+      const message = error instanceof Error ? error.message : ''
+      toast.error(message || t('Failed to export users'))
     } finally {
       setIsExporting(false)
     }
@@ -72,7 +75,7 @@ export function DataTableBulkActions({ table }: DataTableBulkActionsProps) {
         onClick={handleExportSelected}
         disabled={isExporting}
       >
-        <Download className='h-4 w-4' />
+        <Download aria-hidden='true' className='h-4 w-4' />
         {t('Export Selected')}
       </Button>
     </BulkActionsToolbar>

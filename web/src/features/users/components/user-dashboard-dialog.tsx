@@ -77,9 +77,13 @@ export function UserDashboardDialog({
           setDates(res.data.dates)
         } else {
           // e.g. 无权查看该用户的数据看板 — backend message is localized
+          setBrief(null)
+          setDates([])
           toast.error(res.message || t('Failed to load dashboard'))
         }
       } catch {
+        setBrief(null)
+        setDates([])
         toast.error(t('Failed to load dashboard'))
       } finally {
         setLoading(false)
@@ -154,51 +158,49 @@ export function UserDashboardDialog({
       contentHeight='auto'
       bodyClassName='space-y-4'
     >
-      {loading ? (
-        <div className='flex items-center justify-center py-8'>
-          <Loader2 className='text-muted-foreground h-6 w-6 animate-spin' />
+      <div className='flex items-center justify-between gap-2'>
+        <div className='flex gap-2'>
+          {RANGE_PRESETS.map((preset) => (
+            <Button
+              key={preset.days}
+              variant={rangeDays === preset.days ? 'default' : 'outline'}
+              size='sm'
+              onClick={() => {
+                setRangeDays(preset.days)
+                fetchDashboard(preset.days)
+              }}
+            >
+              {t(preset.labelKey)}
+            </Button>
+          ))}
         </div>
-      ) : (
-        <>
-          <div className='flex items-center justify-between gap-2'>
-            <div className='flex gap-2'>
-              {RANGE_PRESETS.map((preset) => (
-                <Button
-                  key={preset.days}
-                  variant={rangeDays === preset.days ? 'default' : 'outline'}
-                  size='sm'
-                  onClick={() => {
-                    setRangeDays(preset.days)
-                    fetchDashboard(preset.days)
-                  }}
-                >
-                  {t(preset.labelKey)}
-                </Button>
-              ))}
-            </div>
-            {brief && (
-              <p className='text-muted-foreground text-xs'>
-                {t('Quota')}: {formatQuota(brief.quota)} · {t('Used Quota')}:{' '}
-                {formatQuota(brief.used_quota)} · {t('Request Count')}:{' '}
-                {brief.request_count}
-              </p>
-            )}
+        {brief && (
+          <p className='text-muted-foreground text-xs'>
+            {t('Quota')}: {formatQuota(brief.quota)} · {t('Used Quota')}:{' '}
+            {formatQuota(brief.used_quota)} · {t('Request Count')}:{' '}
+            {brief.request_count}
+          </p>
+        )}
+      </div>
+      <div className='relative h-[300px]'>
+        {loading && (
+          // Overlay keeps the range controls usable while a refetch runs.
+          <div className='absolute inset-0 z-10 flex items-center justify-center'>
+            <Loader2 className='text-muted-foreground h-6 w-6 animate-spin' />
           </div>
-          <div className='h-[300px]'>
-            {themeReady && (
-              <VChart
-                key={`user-dashboard-${resolvedTheme}`}
-                spec={{
-                  ...spec,
-                  theme: resolvedTheme === 'dark' ? 'dark' : 'light',
-                  background: 'transparent',
-                }}
-                option={VCHART_OPTION}
-              />
-            )}
-          </div>
-        </>
-      )}
+        )}
+        {themeReady && (
+          <VChart
+            key={`user-dashboard-${resolvedTheme}`}
+            spec={{
+              ...spec,
+              theme: resolvedTheme === 'dark' ? 'dark' : 'light',
+              background: 'transparent',
+            }}
+            option={VCHART_OPTION}
+          />
+        )}
+      </div>
     </Dialog>
   )
 }

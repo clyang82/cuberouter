@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -142,6 +143,55 @@ func TestGetUserQuotaDatesByAdminRangeGuard(t *testing.T) {
 	ok, msg := call(0, adminQuotaDatesMaxRange+1)
 	assert.False(t, ok)
 	assert.Equal(t, common.TranslateMessage(expectCtx(), i18n.MsgAdminQuotaDatesRangeExceeded), msg)
+}
+
+// Timestamp validation: parse failures, negative values, reversed intervals,
+// and extreme int64 pairs are all rejected before the range is used, while
+// valid extreme-but-ordered values still pass (no overflow rejection).
+func TestGetUserQuotaDatesByAdminTimestampValidation(t *testing.T) {
+	db := setupQuotaDatesTestDB(t)
+	target := model.User{Username: "qd-ts", Password: "password", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AffCode: "qd-ts-aff"}
+	require.NoError(t, db.Create(&target).Error)
+
+	gin.SetMode(gin.TestMode)
+	call := func(query string) (bool, string) {
+		router := gin.New()
+		router.GET("/api/user/:id/quota-dates", func(c *gin.Context) {
+			c.Set("role", common.RoleAdminUser)
+			GetUserQuotaDatesByAdmin(c)
+		})
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/user/%d/quota-dates?%s", target.Id, query), nil))
+		var body struct {
+			Success bool   `json:"success"`
+			Message string `json:"message"`
+		}
+		require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &body))
+		return body.Success, body.Message
+	}
+
+	cases := []struct {
+		name  string
+		query string
+	}{
+		{name: "malformed start", query: "start_timestamp=abc&end_timestamp=100"},
+		{name: "malformed end", query: "start_timestamp=0&end_timestamp=abc"},
+		{name: "missing timestamps", query: ""},
+		{name: "negative start", query: "start_timestamp=-100&end_timestamp=100"},
+		{name: "negative end", query: "start_timestamp=0&end_timestamp=-100"},
+		{name: "reversed interval", query: "start_timestamp=100&end_timestamp=0"},
+		{name: "overflow-prone extremes", query: fmt.Sprintf("start_timestamp=0&end_timestamp=%d", int64(math.MaxInt64))},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ok, msg := call(tc.query)
+			assert.False(t, ok)
+			assert.Equal(t, common.TranslateMessage(expectCtx(), i18n.MsgAdminQuotaDatesRangeExceeded), msg)
+		})
+	}
+
+	ok, _ := call(fmt.Sprintf("start_timestamp=%d&end_timestamp=%d", int64(math.MaxInt64)-1, int64(math.MaxInt64)))
+	assert.True(t, ok, "valid extreme-but-ordered values must not be rejected")
 }
 
 // Response shape: data.user is the dashboard brief; data.dates matches

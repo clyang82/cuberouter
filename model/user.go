@@ -1590,6 +1590,10 @@ func GetUserInvitees(inviterId int, pageInfo *common.PageInfo) ([]*User, int64, 
 // userExportBatchSize is the batch size for admin user CSV exports.
 const userExportBatchSize = 200
 
+// ErrExportRowsExceeded reports that a filter export matched more than the
+// caller-allowed maximum; the caller surfaces a localized batch_too_many error.
+var ErrExportRowsExceeded = errors.New("export row limit exceeded")
+
 // ExportUsersByIds exports users by id list, batched at userExportBatchSize.
 // A batch error is logged via common.SysLog and returned so the caller fails
 // the request instead of emitting a truncated CSV.
@@ -1612,25 +1616,31 @@ func ExportUsersByIds(ids []int) ([]*User, error) {
 	return users, nil
 }
 
-// ExportUsersByFilter exports all users matching the keyword/group filter,
-// paging through GetAllUsers (empty filter) or SearchUsers until a short page
-// is returned. A batch error is logged via common.SysLog and returned.
-func ExportUsersByFilter(keyword, group string) ([]*User, error) {
+// ExportUsersByFilter exports users matching the keyword/group filter, paging
+// through GetAllUsers (empty filter) or SearchUsers until a short page is
+// returned. maxRows bounds the export: when the first page reports a total
+// above it, ErrExportRowsExceeded is returned before further rows are fetched
+// (0 means no limit). A batch error is logged via common.SysLog and returned.
+func ExportUsersByFilter(keyword, group string, maxRows int) ([]*User, error) {
 	var allUsers []*User
 	page := 1
 	for {
 		var users []*User
+		var total int64
 		var err error
 		if keyword == "" && group == "" {
 			pi := &common.PageInfo{Page: page, PageSize: userExportBatchSize}
-			users, _, err = GetAllUsers(pi)
+			users, total, err = GetAllUsers(pi)
 		} else {
 			startIdx := (page - 1) * userExportBatchSize
-			users, _, err = SearchUsers(keyword, group, nil, nil, startIdx, userExportBatchSize)
+			users, total, err = SearchUsers(keyword, group, nil, nil, startIdx, userExportBatchSize)
 		}
 		if err != nil {
 			common.SysLog(fmt.Sprintf("ExportUsers filter batch err: %v", err))
 			return nil, err
+		}
+		if maxRows > 0 && total > int64(maxRows) {
+			return nil, ErrExportRowsExceeded
 		}
 		if len(users) == 0 {
 			break

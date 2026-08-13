@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 
-import { buildExportPayload } from './export-utils'
+import { buildExportPayload } from '../export-utils'
 
 describe('buildExportPayload', () => {
   test('selected ids win over the current filter', () => {

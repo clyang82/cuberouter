@@ -42,16 +42,16 @@ func TestExportUsersByFilterPaging(t *testing.T) {
 		})
 	}
 
-	all, err := ExportUsersByFilter("", "")
+	all, err := ExportUsersByFilter("", "", 0)
 	require.NoError(t, err)
 	require.Len(t, all, 250)
 
 	// LIKE %page-user-1% matches page-user-100..199 exactly (100 users).
-	kw, err := ExportUsersByFilter("page-user-1", "")
+	kw, err := ExportUsersByFilter("page-user-1", "", 0)
 	require.NoError(t, err)
 	require.Len(t, kw, 100)
 
-	group, err := ExportUsersByFilter("", "default")
+	group, err := ExportUsersByFilter("", "default", 0)
 	require.NoError(t, err)
 	require.Len(t, group, 250)
 }
@@ -63,10 +63,27 @@ func TestExportUsersByFilterIncludesSoftDeleted(t *testing.T) {
 	u := insertOpsUser(t, "deleted-user", 0)
 	require.NoError(t, DB.Delete(&User{}, u.Id).Error)
 
-	all, err := ExportUsersByFilter("", "")
+	all, err := ExportUsersByFilter("", "", 0)
 	require.NoError(t, err)
 	require.Len(t, all, 1)
 	assert.Equal(t, "deleted-user", all[0].Username)
+}
+
+// ExportUsersByFilter aborts with ErrExportRowsExceeded when the first page's
+// total exceeds maxRows, so an oversized export is never materialized.
+func TestExportUsersByFilterExceedsMaxRows(t *testing.T) {
+	truncateTables(t)
+	for i := 0; i < 5; i++ {
+		insertOpsUser(t, fmt.Sprintf("cap-user-%d", i), 0)
+	}
+
+	_, err := ExportUsersByFilter("", "", 2)
+	require.ErrorIs(t, err, ErrExportRowsExceeded)
+
+	// Exactly maxRows is still allowed (total > maxRows, not >=).
+	all, err := ExportUsersByFilter("", "", 5)
+	require.NoError(t, err)
+	require.Len(t, all, 5)
 }
 
 // ExportUsersByFilter returns nil, error when a batch fails, so the caller
@@ -83,6 +100,6 @@ func TestExportUsersByFilterBatchError(t *testing.T) {
 	require.NoError(t, sqlDB.Close())
 	DB = db
 
-	_, err = ExportUsersByFilter("", "")
+	_, err = ExportUsersByFilter("", "", 0)
 	require.Error(t, err)
 }

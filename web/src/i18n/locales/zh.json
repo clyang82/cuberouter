@@ -2361,7 +2361,7 @@
     "Invited Users": "受邀用户",
     "Invitee": "被邀请人",
     "Invitee Reward": "受邀者奖励",
-    "Invitees": "邀请记录",
+    "Invitees": "受邀用户",
     "Inviter": "邀请人",
     "Inviter Reward": "邀请者奖励",
     "Invites": "邀请",
@@ -5423,7 +5423,7 @@
     "Failed to search invitees": "搜索邀请用户失败",
     "Invite Count": "邀请数",
     "No invitees found": "未找到邀请用户",
-    "No invitees yet": "暂无邀请记录",
+    "No invitees yet": "暂无受邀用户",
     "Search invitees": "搜索邀请用户",
     "Select columns": "选择列"
   }
