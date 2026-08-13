@@ -1595,8 +1595,10 @@ const userExportBatchSize = 200
 var ErrExportRowsExceeded = errors.New("export row limit exceeded")
 
 // ExportUsersByIds exports users by id list, batched at userExportBatchSize.
-// A batch error is logged via common.SysLog and returned so the caller fails
-// the request instead of emitting a truncated CSV.
+// Unscoped like ExportUsersByFilter: a soft-deleted user selected by id is
+// still exported (the admin table shows those rows). A batch error is logged
+// via common.SysLog and returned so the caller fails the request instead of
+// emitting a truncated CSV.
 func ExportUsersByIds(ids []int) ([]*User, error) {
 	var users []*User
 	for i := 0; i < len(ids); i += userExportBatchSize {
@@ -1605,7 +1607,7 @@ func ExportUsersByIds(ids []int) ([]*User, error) {
 			end = len(ids)
 		}
 		var batch []*User
-		if err := DB.Omit("password", "access_token").
+		if err := DB.Unscoped().Omit("password", "access_token").
 			Where("id IN ?", ids[i:end]).
 			Find(&batch).Error; err != nil {
 			common.SysLog(fmt.Sprintf("ExportUsers ids batch err: %v", err))

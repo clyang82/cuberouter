@@ -5425,6 +5425,7 @@
     "No invitees found": "未找到邀請用戶",
     "No invitees yet": "暫無受邀使用者",
     "Search invitees": "搜尋邀請用戶",
-    "Select columns": "選擇欄位"
+    "Select columns": "選擇欄位",
+    "{{username}} (ID: {{id}})": "{{username}}（ID: {{id}}）"
   }
 }

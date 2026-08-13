@@ -62,7 +62,7 @@ Verbatim port:
 
 - `adminQuotaDatesMaxRange = 2592000` (1 month in seconds).
 - `canViewUserDashboard(myRole, targetRole int) bool` — root always `true`; otherwise `myRole > targetRole`. Admin (10) can view ops (5)/common (1), not admin (10)/root (100); root (100) can view anyone.
-- `GetUserQuotaDatesByAdmin` — parse `:id` → `MsgInvalidId`; `model.GetUserById(id, false)` error → `MsgUserNotExists`; `canViewUserDashboard(c.GetInt("role"), target.Role)` fail → `admin.cannot_view_user_dashboard`; `end - start > adminQuotaDatesMaxRange` → `admin.quota_dates_range_exceeded`; then `model.GetQuotaDataByUserId(id, start, end)` → `common.ApiSuccess` with `dto.UserDashboardPayload{User: UserDashboardBrief{...}, Dates: dates}`.
+- `GetUserQuotaDatesByAdmin` — parse `:id` → `MsgInvalidId`; `model.GetUserById(id, false)` error → `MsgUserNotExists`; `canViewUserDashboard(c.GetInt("role"), target.Role)` fail → `admin.cannot_view_user_dashboard`; `start_timestamp`/`end_timestamp` are parsed with `strconv.ParseInt` and rejected with `admin.quota_dates_range_exceeded` on parse failure, negative values, or `end < start` (with both non-negative and ordered, `end - start` cannot overflow int64); `end - start > adminQuotaDatesMaxRange` → the same error; then `model.GetQuotaDataByUserId(id, start, end)` → `common.ApiSuccess` with `dto.UserDashboardPayload{User: UserDashboardBrief{...}, Dates: dates}`.
 
 ### 3.7 `router/api-router.go`
 
@@ -151,15 +151,16 @@ Repo style: sqlite in-memory fixtures, `require` for setup/fatal, `assert` for v
 
 9. `GetUserQuotaDatesByAdmin` — admin (10) views common (1) and ops (5); admin rejected for admin (10) and root (100) with `admin.cannot_view_user_dashboard`; root (100) views anyone (source doc case 6).
 10. Range guard — `end - start > 2592000` → `admin.quota_dates_range_exceeded`; boundary `== 2592000` allowed (source doc case 7).
-11. Response shape — `data.user` matches `UserDashboardBrief` fields; `data.dates` matches `GetQuotaDataByUserId` output (source doc case 8).
+11. Timestamp validation — malformed, negative, reversed, and extreme int64 timestamps all rejected with `admin.quota_dates_range_exceeded`; valid extreme-but-ordered values still pass (table-driven `TestGetUserQuotaDatesByAdminTimestampValidation`).
+12. Response shape — `data.user` matches `UserDashboardBrief` fields; `data.dates` matches `GetQuotaDataByUserId` output (source doc case 8).
 
 ### 5.6 `router/user_invitees_route_test.go` (new)
 
-12. `/:id/invitees` and `/:id/quota-dates` registered before `GET /:id` (radix-tree ordering) — port of the source's route-ordering test.
+13. `/:id/invitees` and `/:id/quota-dates` registered before `GET /:id` (radix-tree ordering) — port of the source's route-ordering test.
 
 ### 5.7 Frontend (adapted source doc cases 12–13)
 
-13. `buildExportPayload` (`web/src/features/users/lib/__tests__/export-utils.test.ts`) — ids win over the filter; empty filter fields omitted; empty payload means "export all users". The delivered frontend test covers `buildExportPayload` only — `getUserInvitees`/`getUserQuotaDates` query construction and the `exportUsers` blob behavior have no dedicated Vitest coverage.
+14. `buildExportPayload` (`web/src/features/users/lib/__tests__/export-utils.test.ts`) — ids win over the filter; empty filter fields omitted; empty payload means "export all users". The delivered frontend test covers `buildExportPayload` only — `getUserInvitees`/`getUserQuotaDates` query construction and the `exportUsers` blob behavior have no dedicated Vitest coverage.
 
 ## 6. Docs
 

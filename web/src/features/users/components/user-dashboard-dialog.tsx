@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { VChart } from '@visactor/react-vchart'
 import { ChartColumnBig, Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -61,9 +61,13 @@ export function UserDashboardDialog({
   const [dates, setDates] = useState<QuotaDataItem[]>([])
   const [rangeDays, setRangeDays] = useState<number>(7)
   const [loading, setLoading] = useState(false)
+  // Stale-response guard: only the latest fetch may write state, so a slow
+  // older range cannot overwrite a newer selection when it completes.
+  const requestIdRef = useRef(0)
 
   const fetchDashboard = useCallback(
     async (days: number) => {
+      const requestId = ++requestIdRef.current
       setLoading(true)
       try {
         const end = Math.floor(Date.now() / 1000)
@@ -72,6 +76,7 @@ export function UserDashboardDialog({
           start_timestamp: start,
           end_timestamp: end,
         })
+        if (requestId !== requestIdRef.current) return
         if (res.success && res.data) {
           setBrief(res.data.user)
           setDates(res.data.dates)
@@ -82,11 +87,14 @@ export function UserDashboardDialog({
           toast.error(res.message || t('Failed to load dashboard'))
         }
       } catch {
+        if (requestId !== requestIdRef.current) return
         setBrief(null)
         setDates([])
         toast.error(t('Failed to load dashboard'))
       } finally {
-        setLoading(false)
+        if (requestId === requestIdRef.current) {
+          setLoading(false)
+        }
       }
     },
     [userId, t]
@@ -97,6 +105,8 @@ export function UserDashboardDialog({
       setRangeDays(7)
       fetchDashboard(7)
     } else {
+      // Invalidate any in-flight request when the dialog closes.
+      requestIdRef.current++
       setBrief(null)
       setDates([])
     }
@@ -153,7 +163,7 @@ export function UserDashboardDialog({
           {t('Data Dashboard')}
         </>
       }
-      description={`${username} (ID: ${userId})`}
+      description={t('{{username}} (ID: {{id}})', { username, id: userId })}
       contentClassName='sm:max-w-2xl'
       contentHeight='auto'
       bodyClassName='space-y-4'
@@ -165,6 +175,7 @@ export function UserDashboardDialog({
               key={preset.days}
               variant={rangeDays === preset.days ? 'default' : 'outline'}
               size='sm'
+              aria-pressed={rangeDays === preset.days}
               onClick={() => {
                 setRangeDays(preset.days)
                 fetchDashboard(preset.days)

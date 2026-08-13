@@ -30,6 +30,15 @@ func TestExportUsersByIds(t *testing.T) {
 		assert.Equal(t, "", u.Password, "password must be omitted")
 		assert.Nil(t, u.AccessToken, "access token must be omitted")
 	}
+
+	// A soft-deleted selected user is still exported (Unscoped, matching the
+	// filter export which pages through GetAllUsers/SearchUsers Unscoped).
+	require.NoError(t, DB.Delete(&User{}, ids[0]).Error)
+	got, err = ExportUsersByIds([]int{ids[0]})
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "export-000", got[0].Username)
+	assert.Equal(t, "", got[0].Password, "password must be omitted for soft-deleted rows too")
 }
 
 // ExportUsersByFilter with empty filter pages through GetAllUsers until a
